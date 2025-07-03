@@ -4,11 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DOE Calculator</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .input-table {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      border-collapse: collapse;
+    }
+
+    .input-table td, .input-table th {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    .input-table th {
+      background-color: #f0f0f0;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      font-size: 14px;
+      padding: 4px;
+    }
+  </style>
 </head>
 <body>
 
-  <h1>Design of Experiments (DOE) Calculator</h1>
-  <p>This is a placeholder. UI coming soon...</p>
+  <table class="input-table">
+    <tr>
+      <th>X1</th>
+      <th>X2</th>
+      <th>Y</th>
+    </tr>
+    <tr>
+      <td>-1</td>
+      <td>-1</td>
+      <td><input type="number" value="1" /></td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>-1</td>
+      <td><input type="number" value="2" /></td>
+    </tr>
+    <tr>
+      <td>-1</td>
+      <td>1</td>
+      <td><input type="number" value="3" /></td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>1</td>
+      <td><input type="number" value="8" /></td>
+    </tr>
+  </table>
 
 </body>
 </html>
