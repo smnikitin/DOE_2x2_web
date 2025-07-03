@@ -12,11 +12,15 @@
       padding: 20px;
     }
 
-    .input-table {
+    .input-container {
       position: absolute;
       top: 20px;
       left: 20px;
+    }
+
+    .input-table {
       border-collapse: collapse;
+      margin-bottom: 10px;
     }
 
     .input-table td, .input-table th {
@@ -34,37 +38,47 @@
       font-size: 14px;
       padding: 4px;
     }
+
+    button {
+      font-size: 14px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <table class="input-table">
-    <tr>
-      <th>X1</th>
-      <th>X2</th>
-      <th>Y</th>
-    </tr>
-    <tr>
-      <td>-1</td>
-      <td>-1</td>
-      <td><input type="number" value="1" /></td>
-    </tr>
-    <tr>
-      <td>1</td>
-      <td>-1</td>
-      <td><input type="number" value="2" /></td>
-    </tr>
-    <tr>
-      <td>-1</td>
-      <td>1</td>
-      <td><input type="number" value="3" /></td>
-    </tr>
-    <tr>
-      <td>1</td>
-      <td>1</td>
-      <td><input type="number" value="8" /></td>
-    </tr>
-  </table>
+  <div class="input-container">
+    <table class="input-table">
+      <tr>
+        <th>X1</th>
+        <th>X2</th>
+        <th>Y</th>
+      </tr>
+      <tr>
+        <td>-1</td>
+        <td>-1</td>
+        <td><input type="number" value="1" /></td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>-1</td>
+        <td><input type="number" value="2" /></td>
+      </tr>
+      <tr>
+        <td>-1</td>
+        <td>1</td>
+        <td><input type="number" value="3" /></td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>1</td>
+        <td><input type="number" value="8" /></td>
+      </tr>
+    </table>
+
+    <button id="calculateBtn">Calculate</button>
+  </div>
 
 </body>
 </html>
