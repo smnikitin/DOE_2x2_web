@@ -4,63 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DOE Calculator</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-
-    .layout {
+      margin: 20px;
       display: flex;
       flex-direction: row;
-      gap: 40px;
     }
-
-    .input-container {
-      flex-shrink: 0;
-    }
-
     .input-table {
-      border-collapse: collapse;
-      margin-bottom: 10px;
+      display: inline-block;
+      margin-right: 40px;
     }
-
-    .input-table td, .input-table th {
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 6px 12px;
       border: 1px solid #ccc;
-      padding: 8px 12px;
       text-align: center;
     }
-
-    .input-table th {
-      background-color: #f0f0f0;
-    }
-
-    input[type="number"] {
-      width: 80px;
-      font-size: 14px;
-      padding: 4px;
-    }
-
-    button {
-      font-size: 14px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-
-    #result {
+    .button-container {
       margin-top: 10px;
-      padding: 10px;
+    }
+    #equationResult {
+      margin-top: 15px;
       background-color: black;
       color: white;
-      font-size: 14px;
+      padding: 10px;
       width: fit-content;
-      min-width: 300px;
+      font-weight: bold;
     }
-
     .chart-container {
       width: 500px;
       height: 300px;
@@ -69,47 +42,102 @@
 </head>
 <body>
 
-  <div class="layout">
-    <!-- Input Section -->
-    <div class="input-container">
-      <table class="input-table">
+  <!-- Input Table -->
+  <div class="input-table">
+    <table>
+      <thead>
         <tr>
           <th>X1</th>
           <th>X2</th>
           <th>Y</th>
         </tr>
+      </thead>
+      <tbody>
         <tr>
-          <td>-1</td>
-          <td>-1</td>
-          <td><input type="number" value="1" /></td>
+          <td>-1</td><td>-1</td><td><input type="number" value="1" id="y0" /></td>
         </tr>
         <tr>
-          <td>1</td>
-          <td>-1</td>
-          <td><input type="number" value="2" /></td>
+          <td>1</td><td>-1</td><td><input type="number" value="2" id="y1" /></td>
         </tr>
         <tr>
-          <td>-1</td>
-          <td>1</td>
-          <td><input type="number" value="3" /></td>
+          <td>-1</td><td>1</td><td><input type="number" value="3" id="y2" /></td>
         </tr>
         <tr>
-          <td>1</td>
-          <td>1</td>
-          <td><input type="number" value="8" /></td>
+          <td>1</td><td>1</td><td><input type="number" value="8" id="y3" /></td>
         </tr>
-      </table>
+      </tbody>
+    </table>
 
-      <button id="calculateBtn">Calculate</button>
-
-      <div id="result">Equation will appear here</div>
+    <!-- Calculate Button -->
+    <div class="button-container">
+      <button onclick="calculateEquation()">Calculate</button>
     </div>
 
-    <!-- Pareto Chart Section -->
-    <div class="chart-container">
-      <canvas id="paretoChart"></canvas>
-    </div>
+    <!-- Result Equation -->
+    <div id="equationResult">Equation will appear here</div>
   </div>
+
+  <!-- Pareto Chart -->
+  <div class="chart-container">
+    <canvas id="paretoChart"></canvas>
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Script to draw dummy chart -->
+  <script>
+    // Dummy coefficients (absolute values)
+    const dummyCoefficients = [1.2, -0.8, 2.5];
+    const labels = ['X1', 'X2', 'X1 * X2'];
+
+    const ctx = document.getElementById('paretoChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Effect',
+          data: dummyCoefficients.map(Math.abs),
+          backgroundColor: 'steelblue'
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Pareto Chart of the Effects',
+            font: {
+              size: 16
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Effect'
+            }
+          }
+        }
+      }
+    });
+
+    function calculateEquation() {
+      // Placeholder for future regression
+      const y0 = parseFloat(document.getElementById("y0").value);
+      const y1 = parseFloat(document.getElementById("y1").value);
+      const y2 = parseFloat(document.getElementById("y2").value);
+      const y3 = parseFloat(document.getElementById("y3").value);
+      const Y = [y0, y1, y2, y3];
+
+      // Show placeholder message
+      document.getElementById("equationResult").innerText =
+        "Equation calculated (logic coming soon)";
+    }
+  </script>
 
 </body>
 </html>
