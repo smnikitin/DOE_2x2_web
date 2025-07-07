@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DOE Calculator</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
@@ -12,10 +14,14 @@
       padding: 20px;
     }
 
+    .layout {
+      display: flex;
+      flex-direction: row;
+      gap: 40px;
+    }
+
     .input-container {
-      position: absolute;
-      top: 20px;
-      left: 20px;
+      flex-shrink: 0;
     }
 
     .input-table {
@@ -54,42 +60,55 @@
       width: fit-content;
       min-width: 300px;
     }
+
+    .chart-container {
+      width: 500px;
+      height: 300px;
+    }
   </style>
 </head>
 <body>
 
-  <div class="input-container">
-    <table class="input-table">
-      <tr>
-        <th>X1</th>
-        <th>X2</th>
-        <th>Y</th>
-      </tr>
-      <tr>
-        <td>-1</td>
-        <td>-1</td>
-        <td><input type="number" value="1" /></td>
-      </tr>
-      <tr>
-        <td>1</td>
-        <td>-1</td>
-        <td><input type="number" value="2" /></td>
-      </tr>
-      <tr>
-        <td>-1</td>
-        <td>1</td>
-        <td><input type="number" value="3" /></td>
-      </tr>
-      <tr>
-        <td>1</td>
-        <td>1</td>
-        <td><input type="number" value="8" /></td>
-      </tr>
-    </table>
+  <div class="layout">
+    <!-- Input Section -->
+    <div class="input-container">
+      <table class="input-table">
+        <tr>
+          <th>X1</th>
+          <th>X2</th>
+          <th>Y</th>
+        </tr>
+        <tr>
+          <td>-1</td>
+          <td>-1</td>
+          <td><input type="number" value="1" /></td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>-1</td>
+          <td><input type="number" value="2" /></td>
+        </tr>
+        <tr>
+          <td>-1</td>
+          <td>1</td>
+          <td><input type="number" value="3" /></td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>1</td>
+          <td><input type="number" value="8" /></td>
+        </tr>
+      </table>
 
-    <button id="calculateBtn">Calculate</button>
+      <button id="calculateBtn">Calculate</button>
 
-    <div id="result">Equation will appear here</div>
+      <div id="result">Equation will appear here</div>
+    </div>
+
+    <!-- Pareto Chart Section -->
+    <div class="chart-container">
+      <canvas id="paretoChart"></canvas>
+    </div>
   </div>
 
 </body>
