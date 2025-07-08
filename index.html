@@ -65,7 +65,6 @@
     </div>
 
     <script>
-        // Default input values as requested: 1,2,3,8 for Y
         const X1 = [-1, -1, 1, 1];
         const X2 = [-1, 1, -1, 1];
         const defaultY = [1, 2, 3, 8];
@@ -81,13 +80,12 @@
                 `;
                 tbody.appendChild(row);
             }
-            calculate(); // Calculate initially on load to show plots & equation
+            calculate();
         };
 
         function calculate() {
             const Y = [0, 0, 0, 0].map((_, i) => parseFloat(document.getElementById('Y' + i).value));
             const coefficients = getCoefficients(Y);
-            // Format equation with signs and 2 decimals
             const terms = [
                 coefficients[0].toFixed(2),
                 (coefficients[1] >= 0 ? "+ " : "- ") + Math.abs(coefficients[1]).toFixed(2) + "*X1",
@@ -121,7 +119,7 @@
                     datasets: [{
                         label: "Effect",
                         data: coeffs.slice(1).map(Math.abs),
-                        backgroundColor: "gray"  // Gray bars
+                        backgroundColor: "gray"
                     }]
                 },
                 options: {
