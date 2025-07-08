@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>DOE Visualizer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
   <style>
     body {
@@ -13,40 +13,50 @@
       background-color: white;
       color: black;
     }
+
     .input-section {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: flex-start;
       gap: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
+
     .input-table {
-      flex: 1;
+      flex: 0 0 auto;
     }
+
     .equation-box {
       margin-top: 10px;
       font-weight: bold;
       padding: 10px;
       border: 1px solid #000;
       white-space: pre-wrap;
+      max-width: 1000px;
     }
+
     table {
       border-collapse: collapse;
     }
+
     td, th {
       border: 1px solid #000;
       padding: 5px 10px;
       text-align: center;
     }
+
     .plots {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
     }
+
     .plot-container {
       width: 100%;
       max-width: 500px;
+      background-color: white;
     }
+
     #contourPlot {
       width: 500px;
       height: 400px;
@@ -65,12 +75,11 @@
         <tbody id="input-rows"></tbody>
       </table>
       <button onclick="calculate()">Calculate</button>
-
-      <div class="equation-box" id="equation-result"></div>
     </div>
-
     <div id="contourPlot"></div>
   </div>
+
+  <div class="equation-box" id="equation-result"></div>
 
   <div class="plots">
     <div class="plot-container"><canvas id="paretoChart"></canvas></div>
@@ -110,8 +119,8 @@
           `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
 
       plotPareto(coefficients);
-      plotMainEffects(coefficients);
       plotInteraction(coefficients);
+      plotMainEffect(coefficients);
       plotContour(coefficients);
     }
 
@@ -156,27 +165,24 @@
 
     function plotInteraction(coeffs) {
       const x = [-1, 1];
-      const yLow = x.map(x1 => calculateY(coeffs, x1, -1));
-      const yHigh = x.map(x1 => calculateY(coeffs, x1, 1));
-      const yX2Low = x.map(x2 => calculateY(coeffs, -1, x2));
-      const yX2High = x.map(x2 => calculateY(coeffs, 1, x2));
 
+      // Y vs X1
+      const yX1_low = x.map(x1 => calculateY(coeffs, x1, -1));
+      const yX1_high = x.map(x1 => calculateY(coeffs, x1, 1));
       if (interactionChartX1) interactionChartX1.destroy();
-      if (interactionChartX2) interactionChartX2.destroy();
-
       interactionChartX1 = new Chart("interactionPlotX1", {
         type: "line",
         data: {
           labels: x,
           datasets: [
-            { label: "X2 = -1", data: yLow, borderColor: "#0077cc", fill: false },
-            { label: "X2 = +1", data: yHigh, borderColor: "#00cc88", fill: false }
+            { label: "X2 = -1", data: yX1_low, borderColor: "#000", fill: false },
+            { label: "X2 = +1", data: yX1_high, borderColor: "#888", fill: false }
           ]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Y vs X1", color: "#000" },
+            title: { display: true, text: "Interaction: Y vs X1", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
@@ -186,19 +192,23 @@
         }
       });
 
+      // Y vs X2
+      const yX2_low = x.map(x2 => calculateY(coeffs, -1, x2));
+      const yX2_high = x.map(x2 => calculateY(coeffs, 1, x2));
+      if (interactionChartX2) interactionChartX2.destroy();
       interactionChartX2 = new Chart("interactionPlotX2", {
         type: "line",
         data: {
           labels: x,
           datasets: [
-            { label: "X1 = -1", data: yX2Low, borderColor: "#ff9900", fill: false },
-            { label: "X1 = +1", data: yX2High, borderColor: "#9900cc", fill: false }
+            { label: "X1 = -1", data: yX2_low, borderColor: "#000", fill: false },
+            { label: "X1 = +1", data: yX2_high, borderColor: "#888", fill: false }
           ]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Y vs X2", color: "#000" },
+            title: { display: true, text: "Interaction: Y vs X2", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
@@ -209,7 +219,7 @@
       });
     }
 
-    function plotMainEffects(coeffs) {
+    function plotMainEffect(coeffs) {
       if (mainEffectX1Chart) mainEffectX1Chart.destroy();
       if (mainEffectX2Chart) mainEffectX2Chart.destroy();
 
@@ -276,34 +286,25 @@
     }
 
     function plotContour(coeffs) {
-      const x = [];
-      const y = [];
-      for (let i = -1; i <= 1; i += 0.1) x.push(i);
-      for (let i = -1; i <= 1; i += 0.1) y.push(i);
+      const xRange = math.range(-1, 1.01, 0.05).toArray();
+      const yRange = math.range(-1, 1.01, 0.05).toArray();
+      const z = yRange.map(y => xRange.map(x => calculateY(coeffs, x, y)));
 
-      const z = y.map(yVal => x.map(xVal => calculateY(coeffs, xVal, yVal)));
-
-      const data = [{
+      Plotly.newPlot('contourPlot', [{
         z: z,
-        x: x,
-        y: y,
+        x: xRange,
+        y: yRange,
         type: 'contour',
         colorscale: 'Viridis',
         contours: {
           coloring: 'heatmap',
-          showlabels: true,
-          labelfont: { size: 10, color: 'white' }
-        },
-        colorbar: {
-          title: 'Y'
+          showlabels: true
         }
-      }];
-
-      Plotly.newPlot('contourPlot', data, {
-        title: 'Contour Plot: Y(X1, X2)',
+      }], {
+        title: 'Contour Plot of Y(X1, X2)',
         xaxis: { title: 'X1' },
         yaxis: { title: 'X2' },
-        margin: { t: 40 }
+        margin: { t: 30 }
       }, { responsive: true });
     }
   </script>
