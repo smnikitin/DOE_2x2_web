@@ -38,14 +38,13 @@
 
     .chart-box {
       flex: 1;
-      max-width: 600px;
+      max-width: 400px;
     }
 
     #contourPlot {
-      width: 100%;
-      height: 400px;
+      width: 70%;
+      height: 280px;
       margin: auto;
-      aspect-ratio: 1 / 1;
     }
 
     .equation-box {
@@ -74,6 +73,7 @@
   <h2>Design of Experiments - Input</h2>
 
   <div class="top-section">
+    <!-- Input Table -->
     <div class="input-table">
       <table>
         <thead>
@@ -84,17 +84,21 @@
       <button onclick="calculate()">Calculate</button>
     </div>
 
+    <!-- Pareto Chart -->
     <div class="chart-box">
       <canvas id="paretoChart"></canvas>
     </div>
 
+    <!-- Contour Plot -->
     <div class="chart-box">
       <div id="contourPlot"></div>
     </div>
   </div>
 
+  <!-- Estimated Equation -->
   <div class="equation-box" id="equation-result"></div>
 
+  <!-- Other Plots -->
   <div class="plots">
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
@@ -113,11 +117,11 @@
       const tbody = document.getElementById('input-rows');
       for (let i = 0; i < 4; i++) {
         const row = document.createElement('tr');
-        row.innerHTML = `
+        row.innerHTML = 
           <td>${X1[i]}</td>
           <td>${X2[i]}</td>
           <td><input type="number" value="${defaultY[i]}" id="Y${i}" style="width:60px"></td>
-        `;
+        ;
         tbody.appendChild(row);
       }
       calculate();
@@ -128,8 +132,8 @@
       const coefficients = getCoefficients(Y);
 
       document.getElementById("equation-result").textContent =
-        `Estimated Equation:\nY = ${coefficients.map((c, i) =>
-          `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
+        Estimated Equation:\nY = ${coefficients.map((c, i) =>
+          ${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}).join('')};
 
       plotPareto(coefficients);
       plotInteraction(coefficients);
@@ -149,7 +153,6 @@
       return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
     }
 
-    // --- Pareto chart - unchanged ---
     function plotPareto(coeffs) {
       if (paretoChart) paretoChart.destroy();
       paretoChart = new Chart("paretoChart", {
@@ -177,7 +180,6 @@
       });
     }
 
-    // --- Interaction plots - unchanged ---
     function plotInteraction(coeffs) {
       const x = [-1, 1];
 
@@ -232,7 +234,6 @@
       });
     }
 
-    // --- Main effect plots with same Y limits (only change) ---
     function plotMainEffect(coeffs) {
       if (mainEffectX1Chart) mainEffectX1Chart.destroy();
       if (mainEffectX2Chart) mainEffectX2Chart.destroy();
@@ -240,11 +241,6 @@
       const x = [-1, 1];
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
-
-      // Shared Y axis limits
-      const maxY = Math.max(...yX1, ...yX2);
-      const minY = Math.min(...yX1, ...yX2);
-      const padding = 0.1 * (maxY - minY);
 
       mainEffectX1Chart = new Chart("mainEffectX1", {
         type: "line",
@@ -265,12 +261,7 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: {
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" },
-              min: minY - padding,
-              max: maxY + padding
-            }
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
@@ -294,18 +285,12 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: {
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" },
-              min: minY - padding,
-              max: maxY + padding
-            }
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
     }
 
-    // --- Contour plot - unchanged ---
     function plotContour(coeffs) {
       const xRange = math.range(-1, 1.01, 0.05).toArray();
       const yRange = math.range(-1, 1.01, 0.05).toArray();
@@ -323,10 +308,11 @@
         }
       }], {
         title: 'Contour Plot of Y(X1, X2)',
-        xaxis: { title: 'X1' },
+        width: 280,
+        height: 280,
+        xaxis: { title: 'X1', scaleanchor: 'y' },  <!-- ✅ This makes it square -->
         yaxis: { title: 'X2' },
-        margin: { t: 30 },
-        aspectratio: { x: 1, y: 1 }
+        margin: { t: 30 }
       }, { responsive: true });
     }
   </script>
