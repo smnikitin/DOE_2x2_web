@@ -242,6 +242,14 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
+      // Calculate combined Y limits for both main effects
+      const maxY = Math.max(...yX1, ...yX2);
+      const minY = Math.min(...yX1, ...yX2);
+      const padding = 0.1 * (maxY - minY);
+
+      const yMin = minY - padding;
+      const yMax = maxY + padding;
+
       mainEffectX1Chart = new Chart("mainEffectX1", {
         type: "line",
         data: {
@@ -261,7 +269,12 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: {
+              min: yMin,
+              max: yMax,
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
           }
         }
       });
@@ -285,7 +298,12 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: {
+              min: yMin,
+              max: yMax,
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
           }
         }
       });
@@ -310,7 +328,7 @@
         title: 'Contour Plot of Y(X1, X2)',
         width: 280,
         height: 280,
-        xaxis: { title: 'X1', scaleanchor: 'y' },  <!-- ✅ This makes it square -->
+        xaxis: { title: 'X1', scaleanchor: 'y' },  // square aspect ratio
         yaxis: { title: 'X2' },
         margin: { t: 30 }
       }, { responsive: true });
