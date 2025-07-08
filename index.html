@@ -61,7 +61,10 @@
       </table>
       <button onclick="calculate()">Calculate</button>
     </div>
-    <div class="equation-box" id="equation-result"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+      <div class="equation-box" id="equation-result"></div>
+      <canvas id="heatmap" style="width: 300px; height: 300px; border:1px solid #000"></canvas>
+    </div>
   </div>
   <div class="plots">
     <div class="plot-container"><canvas id="paretoChart"></canvas></div>
@@ -77,8 +80,7 @@
     const X2 = [-1, -1, 1, 1];
     const defaultY = [1, 2, 3, 8];
 
-    // Store chart instances to destroy before redrawing
-    let paretoChart, interactionChartX1, interactionChartX2, mainEffectX1Chart, mainEffectX2Chart;
+    let paretoChart, interactionChartX1, interactionChartX2, mainEffectX1Chart, mainEffectX2Chart, heatmapChart;
 
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
@@ -95,20 +97,17 @@
     };
 
     function calculate() {
-      // Read Y values from inputs
       const Y = [0, 0, 0, 0].map((_, i) => parseFloat(document.getElementById('Y' + i).value));
-      // Calculate coefficients
       const coefficients = getCoefficients(Y);
 
-      // Display estimated equation
       document.getElementById("equation-result").textContent =
         `Estimated Equation:\nY = ${coefficients.map((c, i) =>
           `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
 
-      // Plot updated charts
       plotPareto(coefficients);
       plotInteraction(coefficients);
       plotMainEffect(coefficients);
+      plotHeatmap(coefficients);
     }
 
     function getCoefficients(Y) {
@@ -154,58 +153,24 @@
       if (interactionChartX1) interactionChartX1.destroy();
       if (interactionChartX2) interactionChartX2.destroy();
 
-      const xValues = [-1, 1];
+      const xVals = [-1, 1];
+      // For X1 plot: Y for X2 = -1 and X2 = +1
+      const yX1Low = xVals.map(x1 => calculateY(coeffs, x1, -1));
+      const yX1High = xVals.map(x1 => calculateY(coeffs, x1, 1));
 
-      // Calculate Y for X1 at X2 = -1 and 1
-      const Y_X1_at_X2_neg1 = xValues.map(x1 => calculateY(coeffs, x1, -1));
-      const Y_X1_at_X2_pos1 = xValues.map(x1 => calculateY(coeffs, x1, 1));
-
-      // Calculate Y for X2 at X1 = -1 and 1
-      const Y_X2_at_X1_neg1 = xValues.map(x2 => calculateY(coeffs, -1, x2));
-      const Y_X2_at_X1_pos1 = xValues.map(x2 => calculateY(coeffs, 1, x2));
-
-      // Find shared Y limits
-      const allY = Y_X1_at_X2_neg1.concat(Y_X1_at_X2_pos1, Y_X2_at_X1_neg1, Y_X2_at_X1_pos1);
-      const minY = Math.min(...allY);
-      const maxY = Math.max(...allY);
-      const padding = 0.1 * (maxY - minY || 1);
-      const yAxisLimits = {
-        min: minY - padding,
-        max: maxY + padding
-      };
-
-      // Plot Y vs X1 (for X2 = -1 and 1)
       interactionChartX1 = new Chart("interactionPlotX1", {
         type: "line",
         data: {
-          labels: xValues,
+          labels: xVals,
           datasets: [
-            {
-              label: "X2 = -1",
-              data: Y_X1_at_X2_neg1,
-              borderColor: "blue",
-              backgroundColor: "blue",
-              fill: false,
-              tension: 0.4,
-              pointStyle: 'circle',
-              pointRadius: 5,
-            },
-            {
-              label: "X2 = +1",
-              data: Y_X1_at_X2_pos1,
-              borderColor: "green",
-              backgroundColor: "green",
-              fill: false,
-              tension: 0.4,
-              pointStyle: 'circle',
-              pointRadius: 5,
-            },
-          ],
+            { label: "X2 = -1", data: yX1Low, borderColor: "blue", backgroundColor: "blue", fill: false, tension: 0.4, pointRadius: 5 },
+            { label: "X2 = +1", data: yX1High, borderColor: "green", backgroundColor: "green", fill: false, tension: 0.4, pointRadius: 5 }
+          ]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Y vs X1", color: "#000" },
+            title: { display: true, text: "Interaction Plot: Y vs X1", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
@@ -215,8 +180,6 @@
               grid: { color: "#ccc" }
             },
             y: {
-              min: yAxisLimits.min,
-              max: yAxisLimits.max,
               title: { display: true, text: "Y", color: "#000" },
               ticks: { color: "#000" },
               grid: { color: "#ccc" }
@@ -225,38 +188,23 @@
         }
       });
 
-      // Plot Y vs X2 (for X1 = -1 and 1)
+      // For X2 plot: Y for X1 = -1 and X1 = +1
+      const yX2Low = xVals.map(x2 => calculateY(coeffs, -1, x2));
+      const yX2High = xVals.map(x2 => calculateY(coeffs, 1, x2));
+
       interactionChartX2 = new Chart("interactionPlotX2", {
         type: "line",
         data: {
-          labels: xValues,
+          labels: xVals,
           datasets: [
-            {
-              label: "X1 = -1",
-              data: Y_X2_at_X1_neg1,
-              borderColor: "blue",
-              backgroundColor: "blue",
-              fill: false,
-              tension: 0.4,
-              pointStyle: 'circle',
-              pointRadius: 5,
-            },
-            {
-              label: "X1 = +1",
-              data: Y_X2_at_X1_pos1,
-              borderColor: "green",
-              backgroundColor: "green",
-              fill: false,
-              tension: 0.4,
-              pointStyle: 'circle',
-              pointRadius: 5,
-            },
-          ],
+            { label: "X1 = -1", data: yX2Low, borderColor: "blue", backgroundColor: "blue", fill: false, tension: 0.4, pointRadius: 5 },
+            { label: "X1 = +1", data: yX2High, borderColor: "green", backgroundColor: "green", fill: false, tension: 0.4, pointRadius: 5 }
+          ]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Y vs X2", color: "#000" },
+            title: { display: true, text: "Interaction Plot: Y vs X2", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
@@ -266,8 +214,6 @@
               grid: { color: "#ccc" }
             },
             y: {
-              min: yAxisLimits.min,
-              max: yAxisLimits.max,
               title: { display: true, text: "Y", color: "#000" },
               ticks: { color: "#000" },
               grid: { color: "#ccc" }
@@ -285,7 +231,6 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
-      // Shared Y-axis limits with padding
       const allY = yX1.concat(yX2);
       const minY = Math.min(...allY);
       const maxY = Math.max(...allY);
@@ -313,7 +258,7 @@
           responsive: true,
           plugins: {
             title: { display: true, text: "Main Effect X1", color: "#000" },
-            legend: { display: false }
+            legend: { labels: { color: "#000" } }
           },
           scales: {
             x: {
@@ -350,7 +295,7 @@
           responsive: true,
           plugins: {
             title: { display: true, text: "Main Effect X2", color: "#000" },
-            legend: { display: false }
+            legend: { labels: { color: "#000" } }
           },
           scales: {
             x: {
@@ -365,6 +310,101 @@
               ticks: { color: "#000" },
               grid: { color: "#ccc" }
             }
+          }
+        }
+      });
+    }
+
+    function plotHeatmap(coeffs) {
+      if (heatmapChart) heatmapChart.destroy();
+
+      const steps = 30;
+      const xVals = Array.from({length: steps + 1}, (_, i) => -1 + (2 * i / steps));
+      const yVals = xVals.slice();
+
+      const data = [];
+      let minY = Infinity, maxY = -Infinity;
+      for (let i = 0; i < yVals.length; i++) {
+        for (let j = 0; j < xVals.length; j++) {
+          const x1 = xVals[j];
+          const x2 = yVals[i];
+          const y = calculateY(coeffs, x1, x2);
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+          data.push({x: j, y: i, v: y});
+        }
+      }
+
+      const norm = v => (v - minY) / (maxY - minY || 1);
+
+      const backgroundColors = data.map(d => {
+        const gray = Math.round(255 * (1 - norm(d.v))); // black=low, white=high
+        return `rgb(${gray},${gray},${gray})`;
+      });
+
+      const ctx = document.getElementById('heatmap').getContext('2d');
+
+      heatmapChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Response Surface Heatmap',
+            data: data.map(d => ({x: d.x, y: d.y})),
+            pointBackgroundColor: backgroundColors,
+            pointRadius: 8,
+            showLine: false,
+          }]
+        },
+        options: {
+          responsive: false,
+          scales: {
+            x: {
+              display: true,
+              ticks: {
+                callback: v => xVals[v]?.toFixed(1) ?? '',
+                color: "#000",
+                maxRotation: 0,
+                minRotation: 0,
+              },
+              min: 0,
+              max: steps,
+              grid: { color: "#ccc" },
+              title: { display: true, text: "X1", color: "#000" },
+              offset: true,
+            },
+            y: {
+              display: true,
+              ticks: {
+                callback: v => yVals[v]?.toFixed(1) ?? '',
+                color: "#000",
+                maxRotation: 0,
+                minRotation: 0,
+              },
+              min: 0,
+              max: steps,
+              grid: { color: "#ccc" },
+              title: { display: true, text: "X2", color: "#000" },
+              reverse: true,
+              offset: true,
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: 'Estimated Response Surface (Y) Heatmap',
+              color: "#000"
+            }
+          },
+          elements: {
+            point: {
+              hoverRadius: 10,
+              hoverBorderColor: 'black'
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            intersect: false,
           }
         }
       });
