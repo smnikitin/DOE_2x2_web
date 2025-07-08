@@ -11,15 +11,11 @@
       font-family: Arial, sans-serif;
       margin: 20px;
     }
-
-    /* Top section: input, parental chart, contour plot in a row */
     .top-section {
       display: flex;
       gap: 20px;
       align-items: flex-start;
     }
-
-    /* Equation below top section */
     #equation-result {
       margin-top: 20px;
       padding: 10px;
@@ -27,45 +23,30 @@
       font-weight: bold;
       white-space: pre-wrap;
     }
-
-    /* Input table styling */
     table {
       border-collapse: collapse;
     }
-
     td, th {
       border: 1px solid black;
       padding: 5px 10px;
       text-align: center;
     }
-
-    /* Size for parental chart as before, placed horizontally */
     #paretoChart {
       width: 400px !important;
       height: 240px !important;
       background-color: white;
     }
-
-    /* Contour plot square */
     #contourPlot {
       width: 400px;
       height: 400px;
     }
-
-    /* Container for main + interaction plots below */
     .bottom-section {
       margin-top: 30px;
-    }
-
-    /* Two plots side by side, sharing y-axis */
-    .subplot-row {
       display: flex;
       gap: 40px;
       justify-content: center;
-      margin-bottom: 40px;
     }
-
-    .subplot-wrapper {
+    .plot-wrapper {
       width: 400px;
     }
   </style>
@@ -103,22 +84,17 @@
 
   <!-- Main and Interaction plots below -->
   <div class="bottom-section">
-    <div class="subplot-row" id="mainEffectsRow">
-      <div class="subplot-wrapper">
-        <canvas id="mainEffectPlot"></canvas>
-      </div>
-      <div class="subplot-wrapper">
-        <canvas id="interactionPlotX1"></canvas>
-      </div>
+    <div class="plot-wrapper">
+      <canvas id="mainEffectPlotX1"></canvas>
     </div>
-
-    <div class="subplot-row" id="interactionRow">
-      <div class="subplot-wrapper">
-        <canvas id="mainEffectPlotX2"></canvas>
-      </div>
-      <div class="subplot-wrapper">
-        <canvas id="interactionPlotX2"></canvas>
-      </div>
+    <div class="plot-wrapper">
+      <canvas id="mainEffectPlotX2"></canvas>
+    </div>
+    <div class="plot-wrapper">
+      <canvas id="interactionPlotX1"></canvas>
+    </div>
+    <div class="plot-wrapper">
+      <canvas id="interactionPlotX2"></canvas>
     </div>
   </div>
 
@@ -129,7 +105,7 @@
   const X2_full = [-1, -1, 1, 1];
   const defaultY = [1, 2, 3, 8];
 
-  let paretoChart, mainEffectPlot, mainEffectPlotX2, interactionPlotX1, interactionPlotX2;
+  let paretoChart, mainEffectPlotX1, mainEffectPlotX2, interactionPlotX1, interactionPlotX2;
 
   window.onload = () => {
     const tbody = document.getElementById('input-rows');
@@ -155,7 +131,7 @@
         `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
       ).join('')}`;
 
-    // Parental Chart (Pareto)
+    // Parental Chart (Pareto) horizontal bars
     if (paretoChart) paretoChart.destroy();
     paretoChart = new Chart(document.getElementById("paretoChart"), {
       type: "bar",
@@ -168,76 +144,66 @@
         }]
       },
       options: {
+        indexAxis: 'y', // horizontal bars
         plugins: { legend: { display: false } },
         responsive: false,
-        scales: { y: { beginAtZero: true } }
+        scales: { x: { beginAtZero: true } }
       }
     });
 
-    // Functions to calculate Y
-    function calcY(x1, x2) {
-      return coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
-    }
+    // Calculate Y for main and interaction plots
+    const calcY = (x1, x2) => coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
 
-    // === Main Effect Plot (Y vs X1 at X2=0) ===
+    // Main effect Y vs X1 at X2=0
     const Y_X1_main = X1_values.map(x => calcY(x, 0));
-
-    // === Main Effect Plot (Y vs X2 at X1=0) ===
+    // Main effect Y vs X2 at X1=0
     const Y_X2_main = X2_values.map(x => calcY(0, x));
 
-    // === Interaction Y vs X1 (X2=-1 and X2=1) ===
+    // Interaction Y vs X1 for X2=-1 and X2=1
     const Y_X1_int_neg = X1_values.map(x => calcY(x, -1));
     const Y_X1_int_pos = X1_values.map(x => calcY(x, 1));
 
-    // === Interaction Y vs X2 (X1=-1 and X1=1) ===
+    // Interaction Y vs X2 for X1=-1 and X1=1
     const Y_X2_int_neg = X2_values.map(x => calcY(-1, x));
     const Y_X2_int_pos = X2_values.map(x => calcY(1, x));
 
-    // Plot Main Effect X1 (simple line plot with points)
-    if (mainEffectPlot) mainEffectPlot.destroy();
-    mainEffectPlot = createInteractionMainPlot('mainEffectPlot', X1_values,
+    // Plot main effect X1 (single line with points, black)
+    if (mainEffectPlotX1) mainEffectPlotX1.destroy();
+    mainEffectPlotX1 = createLinePlot('mainEffectPlotX1', X1_values,
       [Y_X1_main],
-      ["X2=0"],
-      'X1',
-      'Y',
-      ['black'],
-      true);
+      ['X2=0'],
+      'X1', 'Y',
+      ['black']);
 
-    // Plot Main Effect X2 (simple line plot with points)
+    // Plot main effect X2
     if (mainEffectPlotX2) mainEffectPlotX2.destroy();
-    mainEffectPlotX2 = createInteractionMainPlot('mainEffectPlotX2', X2_values,
+    mainEffectPlotX2 = createLinePlot('mainEffectPlotX2', X2_values,
       [Y_X2_main],
-      ["X1=0"],
-      'X2',
-      'Y',
-      ['black'],
-      true);
+      ['X1=0'],
+      'X2', 'Y',
+      ['black']);
 
-    // Plot Interaction X1 at X2=-1 and 1
+    // Plot interaction X1 at X2=-1 and X2=1
     if (interactionPlotX1) interactionPlotX1.destroy();
-    interactionPlotX1 = createInteractionMainPlot('interactionPlotX1', X1_values,
+    interactionPlotX1 = createLinePlot('interactionPlotX1', X1_values,
       [Y_X1_int_neg, Y_X1_int_pos],
       ['X2=-1', 'X2=1'],
-      'X1',
-      'Y',
-      ['blue', 'green'],
-      true);
+      'X1', 'Y',
+      ['blue', 'green']);
 
-    // Plot Interaction X2 at X1=-1 and 1
+    // Plot interaction X2 at X1=-1 and X1=1
     if (interactionPlotX2) interactionPlotX2.destroy();
-    interactionPlotX2 = createInteractionMainPlot('interactionPlotX2', X2_values,
+    interactionPlotX2 = createLinePlot('interactionPlotX2', X2_values,
       [Y_X2_int_neg, Y_X2_int_pos],
       ['X1=-1', 'X1=1'],
-      'X2',
-      'Y',
-      ['blue', 'green'],
-      true);
+      'X2', 'Y',
+      ['blue', 'green']);
 
     // Contour plot
     plotContour(coeffs);
   }
 
-  // Regression coefficients from 2^2 factorial design
+  // Regression coefficients calculation
   function getCoefficients(Y) {
     const X = X1_full.map((x1, i) => [1, x1, X2_full[i], x1*X2_full[i]]);
     const XT = math.transpose(X);
@@ -246,10 +212,9 @@
     return math.lusolve(XTX, XTY).flat();
   }
 
-  // Create line plot with multiple series, shared Y-axis, showing points (like your original interaction plots)
-  function createInteractionMainPlot(canvasId, xVals, yArrays, labels, xLabel, yLabel, colors, setXTicks=false) {
+  // Create line plot with points and lines (like your original plots)
+  function createLinePlot(canvasId, xVals, yArrays, labels, xLabel, yLabel, colors) {
     const ctx = document.getElementById(canvasId).getContext("2d");
-
     const datasets = yArrays.map((yarr, i) => ({
       label: labels[i],
       data: xVals.map((x, idx) => ({x: x, y: yarr[idx]})),
@@ -260,7 +225,6 @@
       pointRadius: 5,
       tension: 0
     }));
-
     return new Chart(ctx, {
       type: 'scatter',
       data: { datasets },
@@ -269,7 +233,7 @@
           x: {
             type: 'linear',
             title: { display: true, text: xLabel },
-            ticks: setXTicks ? { values: xVals } : {}
+            ticks: { values: xVals }
           },
           y: {
             title: { display: true, text: yLabel }
@@ -281,7 +245,7 @@
     });
   }
 
-  // Contour plot with Plotly, square, colorscale Viridis
+  // Plotly contour plot
   function plotContour(coeffs) {
     const calcY = (x1, x2) => coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
     const x = math.range(-1, 1.01, 0.05).toArray();
