@@ -117,11 +117,11 @@
       const tbody = document.getElementById('input-rows');
       for (let i = 0; i < 4; i++) {
         const row = document.createElement('tr');
-        row.innerHTML = 
+        row.innerHTML = `
           <td>${X1[i]}</td>
           <td>${X2[i]}</td>
           <td><input type="number" value="${defaultY[i]}" id="Y${i}" style="width:60px"></td>
-        ;
+        `;
         tbody.appendChild(row);
       }
       calculate();
@@ -132,8 +132,8 @@
       const coefficients = getCoefficients(Y);
 
       document.getElementById("equation-result").textContent =
-        Estimated Equation:\nY = ${coefficients.map((c, i) =>
-          ${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}).join('')};
+        `Estimated Equation:\nY = ${coefficients.map((c, i) =>
+          `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
 
       plotPareto(coefficients);
       plotInteraction(coefficients);
