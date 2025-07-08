@@ -38,13 +38,14 @@
 
     .chart-box {
       flex: 1;
-      max-width: 400px;
+      max-width: 600px;
     }
 
     #contourPlot {
-      width: 70%;
-      height: 280px;
+      width: 100%;
+      height: 400px;
       margin: auto;
+      aspect-ratio: 1 / 1;
     }
 
     .equation-box {
@@ -73,7 +74,6 @@
   <h2>Design of Experiments - Input</h2>
 
   <div class="top-section">
-    <!-- Input Table -->
     <div class="input-table">
       <table>
         <thead>
@@ -84,21 +84,17 @@
       <button onclick="calculate()">Calculate</button>
     </div>
 
-    <!-- Pareto Chart -->
     <div class="chart-box">
       <canvas id="paretoChart"></canvas>
     </div>
 
-    <!-- Contour Plot -->
     <div class="chart-box">
       <div id="contourPlot"></div>
     </div>
   </div>
 
-  <!-- Estimated Equation -->
   <div class="equation-box" id="equation-result"></div>
 
-  <!-- Other Plots -->
   <div class="plots">
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
@@ -242,6 +238,11 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
+      const maxY = Math.max(...yX1, ...yX2);
+      const minY = Math.min(...yX1, ...yX2);
+      const padding = 0.1 * (maxY - minY);
+      const yLimits = { min: minY - padding, max: maxY + padding };
+
       mainEffectX1Chart = new Chart("mainEffectX1", {
         type: "line",
         data: {
@@ -261,7 +262,12 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: {
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" },
+              min: yLimits.min,
+              max: yLimits.max
+            }
           }
         }
       });
@@ -285,7 +291,12 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: {
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" },
+              min: yLimits.min,
+              max: yLimits.max
+            }
           }
         }
       });
@@ -308,9 +319,7 @@
         }
       }], {
         title: 'Contour Plot of Y(X1, X2)',
-        width: 280,
-        height: 280,
-        xaxis: { title: 'X1', scaleanchor: 'y' },  <!-- ✅ This makes it square -->
+        xaxis: { title: 'X1' },
         yaxis: { title: 'X2' },
         margin: { t: 30 }
       }, { responsive: true });
