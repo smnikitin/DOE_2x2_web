@@ -8,25 +8,44 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
+    }
+
+    .input-section {
       display: flex;
-      flex-direction: column;
-    }
-    .input-table {
+      justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 20px;
+      gap: 20px;
     }
+
+    .input-table {
+      flex: 1;
+    }
+
+    .equation-box {
+      flex: 1;
+      font-weight: bold;
+      padding: 10px;
+      border: 1px solid #ccc;
+      height: fit-content;
+    }
+
     table {
       border-collapse: collapse;
     }
+
     td, th {
       border: 1px solid #ccc;
       padding: 5px 10px;
       text-align: center;
     }
+
     .plots {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
     }
+
     .plot-container {
       width: 100%;
       max-width: 500px;
@@ -35,15 +54,19 @@
 </head>
 <body>
   <h2>Design of Experiments - Input</h2>
-  <div class="input-table">
-    <table>
-      <thead>
-        <tr><th>X1</th><th>X2</th><th>Y</th></tr>
-      </thead>
-      <tbody id="input-rows"></tbody>
-    </table>
-    <button onclick="calculate()">Calculate</button>
-    <div id="equation-result" style="margin-top:10px;font-weight:bold;"></div>
+  <div class="input-section">
+    <div class="input-table">
+      <table>
+        <thead>
+          <tr><th>X1</th><th>X2</th><th>Y</th></tr>
+        </thead>
+        <tbody id="input-rows"></tbody>
+      </table>
+      <button onclick="calculate()">Calculate</button>
+    </div>
+    <div class="equation-box" id="equation-result">
+      <!-- Equation result will appear here -->
+    </div>
   </div>
 
   <div class="plots">
@@ -75,7 +98,11 @@
     function calculate() {
       const Y = [0, 0, 0, 0].map((_, i) => parseFloat(document.getElementById('Y' + i).value));
       const coefficients = getCoefficients(Y);
-      document.getElementById("equation-result").textContent = `Y = ${coefficients.map(c => c.toFixed(2)).join(' + ')}`;
+      document.getElementById("equation-result").textContent =
+        `Estimated Equation:\nY = ${coefficients.map((c, i) =>
+          `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
+        ).join('')}`;
+
       plotPareto(coefficients);
       plotInteraction(coefficients);
       plotMainEffect(coefficients);
@@ -97,16 +124,22 @@
       new Chart("paretoChart", {
         type: "bar",
         data: {
-          labels: ["X1", "X2", "X1*X2"],
+          labels: ["X1", "X2", "X1·X2"],
           datasets: [{
             label: "Effect",
             data: coeffs.slice(1).map(Math.abs),
-            backgroundColor: "blue"
+            backgroundColor: ["blue", "green", "purple"]
           }]
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: 'Pareto Chart' } }
+          indexAxis: 'y', // horizontal bars (as it originally was)
+          plugins: {
+            title: {
+              display: true,
+              text: 'Pareto Chart'
+            }
+          }
         }
       });
     }
