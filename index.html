@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DOE Visualizer</title>
+  <title>DOE Visualizer with Contour Plot</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,13 +40,18 @@
     }
     .plots {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
+      margin-top: 20px;
     }
     .plot-container {
       width: 100%;
       max-width: 500px;
       background-color: white;
+    }
+    #contourPlot {
+      width: 100% !important;
+      height: 400px !important;
     }
   </style>
 </head>
@@ -61,17 +67,16 @@
       </table>
       <button onclick="calculate()">Calculate</button>
     </div>
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-      <div class="equation-box" id="equation-result"></div>
-      <canvas id="heatmap" style="width: 300px; height: 300px; border:1px solid #000"></canvas>
-    </div>
+    <div class="equation-box" id="equation-result"></div>
   </div>
   <div class="plots">
     <div class="plot-container"><canvas id="paretoChart"></canvas></div>
-    <div class="plot-container"><canvas id="interactionPlotX1"></canvas></div>
-    <div class="plot-container"><canvas id="interactionPlotX2"></canvas></div>
+    <div class="plot-container"><canvas id="interactionPlot"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
+    <div class="plot-container" style="grid-column: span 2;">
+      <div id="contourPlot"></div>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
@@ -80,7 +85,7 @@
     const X2 = [-1, -1, 1, 1];
     const defaultY = [1, 2, 3, 8];
 
-    let paretoChart, interactionChartX1, interactionChartX2, mainEffectX1Chart, mainEffectX2Chart, heatmapChart;
+    let paretoChart, interactionChart, mainEffectX1Chart, mainEffectX2Chart;
 
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
@@ -107,7 +112,7 @@
       plotPareto(coefficients);
       plotInteraction(coefficients);
       plotMainEffect(coefficients);
-      plotHeatmap(coefficients);
+      plotContour(coefficients);
     }
 
     function getCoefficients(Y) {
@@ -150,74 +155,29 @@
     }
 
     function plotInteraction(coeffs) {
-      if (interactionChartX1) interactionChartX1.destroy();
-      if (interactionChartX2) interactionChartX2.destroy();
+      if (interactionChart) interactionChart.destroy();
+      const x = [-1, 1];
+      const yLow = x.map(x1 => calculateY(coeffs, x1, -1));
+      const yHigh = x.map(x1 => calculateY(coeffs, x1, 1));
 
-      const xVals = [-1, 1];
-      // For X1 plot: Y for X2 = -1 and X2 = +1
-      const yX1Low = xVals.map(x1 => calculateY(coeffs, x1, -1));
-      const yX1High = xVals.map(x1 => calculateY(coeffs, x1, 1));
-
-      interactionChartX1 = new Chart("interactionPlotX1", {
+      interactionChart = new Chart("interactionPlot", {
         type: "line",
         data: {
-          labels: xVals,
+          labels: x,
           datasets: [
-            { label: "X2 = -1", data: yX1Low, borderColor: "blue", backgroundColor: "blue", fill: false, tension: 0.4, pointRadius: 5 },
-            { label: "X2 = +1", data: yX1High, borderColor: "green", backgroundColor: "green", fill: false, tension: 0.4, pointRadius: 5 }
+            { label: "X2 = -1", data: yLow, borderColor: "#000", fill: false },
+            { label: "X2 = +1", data: yHigh, borderColor: "#888", fill: false }
           ]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Interaction Plot: Y vs X1", color: "#000" },
+            title: { display: true, text: "Interaction Plot", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
-            x: {
-              title: { display: true, text: "X1", color: "#000" },
-              ticks: { color: "#000", stepSize: 1 },
-              grid: { color: "#ccc" }
-            },
-            y: {
-              title: { display: true, text: "Y", color: "#000" },
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" }
-            }
-          }
-        }
-      });
-
-      // For X2 plot: Y for X1 = -1 and X1 = +1
-      const yX2Low = xVals.map(x2 => calculateY(coeffs, -1, x2));
-      const yX2High = xVals.map(x2 => calculateY(coeffs, 1, x2));
-
-      interactionChartX2 = new Chart("interactionPlotX2", {
-        type: "line",
-        data: {
-          labels: xVals,
-          datasets: [
-            { label: "X1 = -1", data: yX2Low, borderColor: "blue", backgroundColor: "blue", fill: false, tension: 0.4, pointRadius: 5 },
-            { label: "X1 = +1", data: yX2High, borderColor: "green", backgroundColor: "green", fill: false, tension: 0.4, pointRadius: 5 }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: "Interaction Plot: Y vs X2", color: "#000" },
-            legend: { labels: { color: "#000" } }
-          },
-          scales: {
-            x: {
-              title: { display: true, text: "X2", color: "#000" },
-              ticks: { color: "#000", stepSize: 1 },
-              grid: { color: "#ccc" }
-            },
-            y: {
-              title: { display: true, text: "Y", color: "#000" },
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" }
-            }
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
@@ -236,8 +196,8 @@
       const maxY = Math.max(...allY);
       const padding = 0.1 * (maxY - minY || 1);
       const sharedY = {
-        min: minY - padding,
-        max: maxY + padding,
+        suggestedMin: minY - padding,
+        suggestedMax: maxY + padding
       };
 
       mainEffectX1Chart = new Chart("mainEffectX1", {
@@ -245,34 +205,21 @@
         data: {
           labels: x,
           datasets: [{
-            label: "Y vs X1",
+            label: "Y vs X1 (X2=0)",
             data: yX1,
-            borderColor: "blue",
-            backgroundColor: "blue",
-            fill: false,
-            tension: 0.4,
-            pointRadius: 5,
+            borderColor: "#000",
+            fill: false
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Main Effect X1", color: "#000" },
+            title: { display: true, text: "Main Effect: X1", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
-            x: {
-              title: { display: true, text: "X1", color: "#000" },
-              ticks: { color: "#000", stepSize: 1 },
-              grid: { color: "#ccc" }
-            },
-            y: {
-              min: sharedY.min,
-              max: sharedY.max,
-              title: { display: true, text: "Y", color: "#000" },
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" }
-            }
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
@@ -282,152 +229,64 @@
         data: {
           labels: x,
           datasets: [{
-            label: "Y vs X2",
+            label: "Y vs X2 (X1=0)",
             data: yX2,
-            borderColor: "green",
-            backgroundColor: "green",
-            fill: false,
-            tension: 0.4,
-            pointRadius: 5,
+            borderColor: "#444",
+            fill: false
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Main Effect X2", color: "#000" },
+            title: { display: true, text: "Main Effect: X2", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
-            x: {
-              title: { display: true, text: "X2", color: "#000" },
-              ticks: { color: "#000", stepSize: 1 },
-              grid: { color: "#ccc" }
-            },
-            y: {
-              min: sharedY.min,
-              max: sharedY.max,
-              title: { display: true, text: "Y", color: "#000" },
-              ticks: { color: "#000" },
-              grid: { color: "#ccc" }
-            }
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
     }
 
-    // Color interpolation helper for blue-white-red gradient
-    function interpolateColor(value) {
-      // value: normalized between 0 and 1
-      // 0 => blue (0, 0, 255)
-      // 0.5 => white (255, 255, 255)
-      // 1 => red (255, 0, 0)
-      if (value <= 0.5) {
-        // interpolate blue to white
-        const ratio = value / 0.5;
-        const r = Math.round(255 * ratio);
-        const g = Math.round(255 * ratio);
-        const b = 255;
-        return `rgb(${r},${g},${b})`;
-      } else {
-        // interpolate white to red
-        const ratio = (value - 0.5) / 0.5;
-        const r = 255;
-        const g = Math.round(255 * (1 - ratio));
-        const b = Math.round(255 * (1 - ratio));
-        return `rgb(${r},${g},${b})`;
-      }
-    }
-
-    function plotHeatmap(coeffs) {
-      if (heatmapChart) heatmapChart.destroy();
-
-      const steps = 30;
+    function plotContour(coeffs) {
+      const steps = 40;
       const xVals = Array.from({length: steps + 1}, (_, i) => -1 + (2 * i / steps));
       const yVals = xVals.slice();
 
-      const data = [];
-      let minY = Infinity, maxY = -Infinity;
-      for (let i = 0; i < yVals.length; i++) {
-        for (let j = 0; j < xVals.length; j++) {
-          const x1 = xVals[j];
-          const x2 = yVals[i];
-          const y = calculateY(coeffs, x1, x2);
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-          data.push({x: j, y: i, v: y});
+      const zVals = [];
+      for (let i = 0; i <= steps; i++) {
+        const row = [];
+        for (let j = 0; j <= steps; j++) {
+          row.push(calculateY(coeffs, xVals[j], yVals[i]));
         }
+        zVals.push(row);
       }
 
-      const norm = v => (v - minY) / (maxY - minY || 1);
-
-      const backgroundColors = data.map(d => interpolateColor(norm(d.v)));
-
-      const ctx = document.getElementById('heatmap').getContext('2d');
-
-      heatmapChart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-          datasets: [{
-            label: 'Response Surface Heatmap',
-            data: data.map(d => ({x: d.x, y: d.y})),
-            pointBackgroundColor: backgroundColors,
-            pointRadius: 8,
-            showLine: false,
-          }]
+      const data = [{
+        z: zVals,
+        x: xVals,
+        y: yVals,
+        type: 'contour',
+        colorscale: 'Viridis',
+        contours: {
+          coloring: 'heatmap'
         },
-        options: {
-          responsive: false,
-          scales: {
-            x: {
-              display: true,
-              ticks: {
-                callback: v => xVals[v]?.toFixed(2) ?? '',
-                color: "#000",
-                maxRotation: 0,
-                minRotation: 0,
-              },
-              min: 0,
-              max: steps,
-              grid: { color: "#ccc" },
-              title: { display: true, text: "X1", color: "#000" },
-              offset: true,
-            },
-            y: {
-              display: true,
-              ticks: {
-                callback: v => yVals[v]?.toFixed(2) ?? '',
-                color: "#000",
-                maxRotation: 0,
-                minRotation: 0,
-              },
-              min: 0,
-              max: steps,
-              grid: { color: "#ccc" },
-              title: { display: true, text: "X2", color: "#000" },
-              reverse: true,
-              offset: true,
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            title: {
-              display: true,
-              text: 'Estimated Response Surface (Y) Heatmap',
-              color: "#000"
-            }
-          },
-          elements: {
-            point: {
-              hoverRadius: 10,
-              hoverBorderColor: 'black'
-            }
-          },
-          interaction: {
-            mode: 'nearest',
-            intersect: false,
-          }
+        colorbar: {
+          title: 'Y value'
         }
-      });
+      }];
+
+      const layout = {
+        title: 'Estimated Response Surface (Contour Plot)',
+        xaxis: {title: 'X1'},
+        yaxis: {title: 'X2'},
+        margin: {l:50, r:50, t:50, b:50},
+        height: 400,
+        width: 500
+      };
+
+      Plotly.newPlot('contourPlot', data, layout, {responsive: true});
     }
   </script>
 </body>
