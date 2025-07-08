@@ -42,8 +42,9 @@
     }
 
     #contourPlot {
-      width: 100%;
-      height: 400px;
+      width: 70%;
+      height: 280px;
+      margin: auto;
     }
 
     .equation-box {
@@ -55,18 +56,15 @@
       max-width: 100%;
     }
 
-    /* Updated styles for the four plots in a single row */
     .plots {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 20px;
       margin-top: 20px;
-      justify-content: center;
-      flex-wrap: nowrap;
     }
 
     .plot-container {
-      flex: 1 1 0;
-      max-width: 23%;
+      width: 100%;
       background-color: white;
     }
   </style>
@@ -100,7 +98,7 @@
   <!-- Estimated Equation -->
   <div class="equation-box" id="equation-result"></div>
 
-  <!-- Four plots in one horizontal line -->
+  <!-- Other Plots -->
   <div class="plots">
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
@@ -310,7 +308,7 @@
         }
       }], {
         title: 'Contour Plot of Y(X1, X2)',
-        xaxis: { title: 'X1', scaleanchor: 'y', scaleratio: 1 },
+        xaxis: { title: 'X1' },
         yaxis: { title: 'X2' },
         margin: { t: 30 }
       }, { responsive: true });
