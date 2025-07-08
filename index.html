@@ -149,7 +149,7 @@
       return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
     }
 
-    // --- Pareto chart - REVERTED TO PREVIOUS ---
+    // --- Pareto chart - unchanged ---
     function plotPareto(coeffs) {
       if (paretoChart) paretoChart.destroy();
       paretoChart = new Chart("paretoChart", {
@@ -177,6 +177,7 @@
       });
     }
 
+    // --- Interaction plots - unchanged ---
     function plotInteraction(coeffs) {
       const x = [-1, 1];
 
@@ -231,7 +232,7 @@
       });
     }
 
-    // --- Main effect plots WITH shared Y axis limits ---
+    // --- Main effect plots with same Y limits (only change) ---
     function plotMainEffect(coeffs) {
       if (mainEffectX1Chart) mainEffectX1Chart.destroy();
       if (mainEffectX2Chart) mainEffectX2Chart.destroy();
@@ -240,11 +241,10 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
-      // Shared Y-axis limits calculation
+      // Shared Y axis limits
       const maxY = Math.max(...yX1, ...yX2);
       const minY = Math.min(...yX1, ...yX2);
       const padding = 0.1 * (maxY - minY);
-      const yLimits = { min: minY - padding, max: maxY + padding };
 
       mainEffectX1Chart = new Chart("mainEffectX1", {
         type: "line",
@@ -268,8 +268,8 @@
             y: {
               ticks: { color: "#000" },
               grid: { color: "#ccc" },
-              min: yLimits.min,
-              max: yLimits.max
+              min: minY - padding,
+              max: maxY + padding
             }
           }
         }
@@ -297,15 +297,15 @@
             y: {
               ticks: { color: "#000" },
               grid: { color: "#ccc" },
-              min: yLimits.min,
-              max: yLimits.max
+              min: minY - padding,
+              max: maxY + padding
             }
           }
         }
       });
     }
 
-    // --- Contour plot - REVERTED TO PREVIOUS ---
+    // --- Contour plot - unchanged ---
     function plotContour(coeffs) {
       const xRange = math.range(-1, 1.01, 0.05).toArray();
       const yRange = math.range(-1, 1.01, 0.05).toArray();
