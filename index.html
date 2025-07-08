@@ -12,27 +12,30 @@
       color: black;
     }
 
+    /* Layout of input section: table and equation side by side */
     .input-section {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 10px; /* reduced space here */
-      gap: 10px; /* closer spacing */
+      margin-bottom: 10px; /* reduced space */
+      gap: 10px; /* spacing between table and equation */
     }
 
     .input-table {
-      flex: 1;
+      flex: 1; /* table takes available space */
     }
 
+    /* Styling for equation box */
     .equation-box {
-      flex: 1;
+      flex: 1; /* equation box takes equal space */
       font-weight: bold;
       padding: 10px;
       border: 1px solid #000;
       height: fit-content;
-      white-space: pre-wrap;
+      white-space: pre-wrap; /* keep line breaks */
     }
 
+    /* Table styling */
     table {
       border-collapse: collapse;
     }
@@ -43,6 +46,7 @@
       text-align: center;
     }
 
+    /* Plot containers grid */
     .plots {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -58,21 +62,25 @@
 </head>
 <body>
   <h2>Design of Experiments - Input</h2>
+
+  <!-- Input section: table for input data + equation box -->
   <div class="input-section">
     <div class="input-table">
       <table>
         <thead>
           <tr><th>X1</th><th>X2</th><th>Y</th></tr>
         </thead>
-        <tbody id="input-rows"></tbody>
+        <tbody id="input-rows"></tbody> <!-- Rows added dynamically -->
       </table>
-      <button onclick="calculate()">Calculate</button>
+      <button onclick="calculate()">Calculate</button> <!-- Calculate button -->
     </div>
+
     <div class="equation-box" id="equation-result">
-      <!-- Equation will be displayed here -->
+      <!-- Equation result displayed here -->
     </div>
   </div>
 
+  <!-- Plots container -->
   <div class="plots">
     <div class="plot-container"><canvas id="paretoChart"></canvas></div>
     <div class="plot-container"><canvas id="interactionPlot"></canvas></div>
@@ -82,10 +90,14 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
   <script>
+    // Fixed design factor levels
     const X1 = [-1, -1, 1, 1];
     const X2 = [-1, 1, -1, 1];
-    const defaultY = [1, 2, 3, 8]; // your specified default values
 
+    // Default Y values for each run
+    const defaultY = [1, 2, 3, 8];
+
+    // On page load, fill the input table with default values
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
       for (let i = 0; i < 4; i++) {
@@ -97,48 +109,65 @@
         `;
         tbody.appendChild(row);
       }
-      calculate(); // trigger calculation and plots on page load
+      calculate(); // Perform initial calculation and plotting
     };
 
+    // Main calculation function triggered by button or on load
     function calculate() {
+      // Read Y values from inputs, parse as floats
       const Y = [0, 0, 0, 0].map((_, i) => parseFloat(document.getElementById('Y' + i).value));
+
+      // Calculate model coefficients [Intercept, b1, b2, b12]
       const coefficients = getCoefficients(Y);
+
+      // Format and display estimated regression equation in equation box
       document.getElementById("equation-result").textContent =
         `Estimated Equation:\nY = ${coefficients.map((c, i) =>
           `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
         ).join('')}`;
 
+      // Plot Pareto chart, interaction plot, and main effects
       plotPareto(coefficients);
       plotInteraction(coefficients);
       plotMainEffect(coefficients);
     }
 
+    // Calculate regression coefficients using least squares
     function getCoefficients(Y) {
+      // Create design matrix X (4 runs, 4 terms)
       const X = X1.map((x1, i) => [1, x1, X2[i], x1 * X2[i]]);
+
+      // Transpose X matrix
       const XT = math.transpose(X);
+
+      // Calculate (X'X) and (X'Y)
       const XTX = math.multiply(XT, X);
       const XTY = math.multiply(XT, Y);
+
+      // Solve for coefficients: (X'X) * b = (X'Y)
       return math.lusolve(XTX, XTY).flat();
     }
 
+    // Calculate predicted Y given coefficients and factor levels
     function calculateY(coeffs, x1, x2) {
       return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
     }
 
+    // Plot Pareto chart (bar plot of absolute effect sizes)
     function plotPareto(coeffs) {
       new Chart("paretoChart", {
         type: "bar",
         data: {
-          labels: ["X1", "X2", "X1·X2"],
+          labels: ["X1", "X2", "X1·X2"], // Factors and interaction
           datasets: [{
             label: "Effect",
-            data: coeffs.slice(1).map(Math.abs),
-            backgroundColor: "gray"  // changed to gray
+            data: coeffs.slice(1).map(Math.abs), // absolute value of coefficients
+            backgroundColor: "gray"  // bars in gray
           }]
         },
         options: {
           responsive: true,
-          indexAxis: 'y',
+          indexAxis: 'y', // horizontal bars
           plugins: {
             legend: { display: false },
             title: {
@@ -155,18 +184,19 @@
       });
     }
 
+    // Plot interaction plot: two lines for X2 = -1 and X2 = +1
     function plotInteraction(coeffs) {
-      const x = [-1, 1];
-      const yLow = x.map(x1 => calculateY(coeffs, x1, -1));
-      const yHigh = x.map(x1 => calculateY(coeffs, x1, 1));
+      const x = [-1, 1]; // factor X1 levels
+      const yLow = x.map(x1 => calculateY(coeffs, x1, -1)); // Y when X2 = -1
+      const yHigh = x.map(x1 => calculateY(coeffs, x1, 1)); // Y when X2 = +1
 
       new Chart("interactionPlot", {
         type: "line",
         data: {
           labels: x,
           datasets: [
-            { label: "X2 = -1", data: yLow, borderColor: "#000", fill: false },
-            { label: "X2 = +1", data: yHigh, borderColor: "#888", fill: false } // gray line
+            { label: "X2 = -1", data: yLow, borderColor: "#000", fill: false },  // black line
+            { label: "X2 = +1", data: yHigh, borderColor: "#888", fill: false }  // gray line
           ]
         },
         options: {
@@ -183,11 +213,17 @@
       });
     }
 
+    // Plot main effects for X1 and X2 separately
     function plotMainEffect(coeffs) {
-      const x = [-1, 1];
+      const x = [-1, 1]; // factor levels
+
+      // Y predicted when X2 = 0 (for X1 main effect)
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
+
+      // Y predicted when X1 = 0 (for X2 main effect)
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
+      // Plot main effect of X1 in black
       new Chart("mainEffectX1", {
         type: "line",
         data: {
@@ -212,6 +248,7 @@
         }
       });
 
+      // Plot main effect of X2 in dark gray
       new Chart("mainEffectX2", {
         type: "line",
         data: {
