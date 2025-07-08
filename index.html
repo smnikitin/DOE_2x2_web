@@ -10,9 +10,9 @@
       margin: 20px;
       display: flex;
       flex-direction: row;
+      flex-wrap: wrap;
     }
     .input-table {
-      display: inline-block;
       margin-right: 40px;
     }
     table {
@@ -34,9 +34,12 @@
       width: fit-content;
       font-weight: bold;
     }
-    .chart-container {
-      width: 500px;
-      height: 300px;
+    .chart-box {
+      margin-top: 20px;
+      margin-right: 40px;
+    }
+    canvas {
+      background-color: #fff;
     }
   </style>
 </head>
@@ -53,91 +56,175 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>-1</td><td>-1</td><td><input type="number" value="1" id="y0" /></td>
-        </tr>
-        <tr>
-          <td>1</td><td>-1</td><td><input type="number" value="2" id="y1" /></td>
-        </tr>
-        <tr>
-          <td>-1</td><td>1</td><td><input type="number" value="3" id="y2" /></td>
-        </tr>
-        <tr>
-          <td>1</td><td>1</td><td><input type="number" value="8" id="y3" /></td>
-        </tr>
+        <tr><td>-1</td><td>-1</td><td><input type="number" value="1" id="y0" /></td></tr>
+        <tr><td>1</td><td>-1</td><td><input type="number" value="2" id="y1" /></td></tr>
+        <tr><td>-1</td><td>1</td><td><input type="number" value="3" id="y2" /></td></tr>
+        <tr><td>1</td><td>1</td><td><input type="number" value="8" id="y3" /></td></tr>
       </tbody>
     </table>
 
-    <!-- Calculate Button -->
     <div class="button-container">
       <button onclick="calculateEquation()">Calculate</button>
     </div>
 
-    <!-- Result Equation -->
     <div id="equationResult">Equation will appear here</div>
   </div>
 
-  <!-- Pareto Chart -->
-  <div class="chart-container">
-    <canvas id="paretoChart"></canvas>
+  <!-- Charts -->
+  <div class="chart-box">
+    <canvas id="paretoChart" width="400" height="300"></canvas>
+  </div>
+  <div class="chart-box">
+    <canvas id="mainEffectsChart" width="400" height="300"></canvas>
+  </div>
+  <div class="chart-box">
+    <canvas id="interactionChart" width="400" height="300"></canvas>
   </div>
 
-  <!-- Chart.js CDN -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Script to draw dummy chart -->
   <script>
-    // Dummy coefficients (absolute values)
-    const dummyCoefficients = [1.2, -0.8, 2.5];
-    const labels = ['X1', 'X2', 'X1 * X2'];
+    function calculateEquation() {
+      const Y = [
+        parseFloat(document.getElementById("y0").value),
+        parseFloat(document.getElementById("y1").value),
+        parseFloat(document.getElementById("y2").value),
+        parseFloat(document.getElementById("y3").value)
+      ];
 
-    const ctx = document.getElementById('paretoChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Effect',
-          data: dummyCoefficients.map(Math.abs),
-          backgroundColor: 'steelblue'
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: {
-          title: {
-            display: true,
-            text: 'Pareto Chart of the Effects',
-            font: {
-              size: 16
-            }
-          }
+      const X = [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1]
+      ];
+
+      // Create matrix for regression
+      const X_matrix = X.map(([x1, x2]) => [1, x1, x2, x1 * x2]);
+      const XT = math.transpose(X_matrix);
+      const XTX = math.multiply(XT, X_matrix);
+      const XTY = math.multiply(XT, Y);
+      const coefficients = math.multiply(math.inv(XTX), XTY);
+
+      // Display Equation
+      const eqText = `Y = ${coefficients[0].toFixed(2)} + ${coefficients[1].toFixed(2)}*X1 + ${coefficients[2].toFixed(2)}*X2 + ${coefficients[3].toFixed(2)}*X1*X2`;
+      document.getElementById("equationResult").innerText = eqText;
+
+      drawPareto(coefficients);
+      drawMainEffects(coefficients);
+      drawInteraction(coefficients);
+    }
+
+    function drawPareto(coeffs) {
+      const ctx = document.getElementById("paretoChart").getContext("2d");
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["X1", "X2", "X1*X2"],
+          datasets: [{
+            label: "Effect",
+            data: [Math.abs(coeffs[1]), Math.abs(coeffs[2]), Math.abs(coeffs[3])],
+            backgroundColor: "steelblue"
+          }]
         },
-        scales: {
-          x: {
+        options: {
+          indexAxis: "y",
+          plugins: {
             title: {
               display: true,
-              text: 'Effect'
+              text: "Pareto Chart of the Effects"
+            }
+          },
+          responsive: false
+        }
+      });
+    }
+
+    function calculateY(coeffs, x1, x2) {
+      if (Array.isArray(x1)) {
+        return x1.map((x, i) => coeffs[0] + coeffs[1] * x + coeffs[2] * (Array.isArray(x2) ? x2[i] : x2) + coeffs[3] * x * (Array.isArray(x2) ? x2[i] : x2));
+      } else {
+        return x2.map(x => coeffs[0] + coeffs[1] * x1 + coeffs[2] * x + coeffs[3] * x1 * x);
+      }
+    }
+
+    function drawMainEffects(coeffs) {
+      const x_vals = [-1, 1];
+      const y_vs_x1 = calculateY(coeffs, x_vals, 0);
+      const y_vs_x2 = calculateY(coeffs, 0, x_vals);
+
+      const ctx = document.getElementById("mainEffectsChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: x_vals,
+          datasets: [
+            {
+              label: "Y vs X1 (X2=0)",
+              data: y_vs_x1,
+              borderColor: "blue",
+              fill: false
+            },
+            {
+              label: "Y vs X2 (X1=0)",
+              data: y_vs_x2,
+              borderColor: "green",
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Main Effects"
             }
           }
         }
-      }
-    });
+      });
+    }
 
-    function calculateEquation() {
-      // Placeholder for future regression
-      const y0 = parseFloat(document.getElementById("y0").value);
-      const y1 = parseFloat(document.getElementById("y1").value);
-      const y2 = parseFloat(document.getElementById("y2").value);
-      const y3 = parseFloat(document.getElementById("y3").value);
-      const Y = [y0, y1, y2, y3];
+    function drawInteraction(coeffs) {
+      const x_vals = [-1, 1];
+      const y1 = calculateY(coeffs, x_vals, -1); // X2 = -1
+      const y2 = calculateY(coeffs, x_vals, 1);  // X2 = 1
 
-      // Show placeholder message
-      document.getElementById("equationResult").innerText =
-        "Equation calculated (logic coming soon)";
+      const ctx = document.getElementById("interactionChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: x_vals,
+          datasets: [
+            {
+              label: "X2 = -1",
+              data: y1,
+              borderColor: "blue",
+              fill: false
+            },
+            {
+              label: "X2 = 1",
+              data: y2,
+              borderColor: "green",
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Interaction Plot (Y vs X1 for X2 = ±1)"
+            }
+          }
+        }
+      });
     }
   </script>
 
+  <!-- Math.js for matrix calculation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
 </body>
 </html>
