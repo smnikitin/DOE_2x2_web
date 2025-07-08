@@ -32,8 +32,8 @@
       text-align: center;
     }
     #paretoChart {
-      width: 400px !important;
-      height: 240px !important;
+      width: 300px !important;
+      height: 180px !important;
       background-color: white;
     }
     #contourPlot {
@@ -45,9 +45,17 @@
       display: flex;
       gap: 40px;
       justify-content: center;
+      flex-wrap: wrap;
     }
     .plot-wrapper {
       width: 400px;
+    }
+    #plots-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-top: 30px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -82,6 +90,9 @@
   <!-- Equation below top row -->
   <div id="equation-result"></div>
 
+  <!-- Title above main/interaction plots -->
+  <div id="plots-title">Main and Interaction Effects</div>
+
   <!-- Main and Interaction plots below -->
   <div class="bottom-section">
     <div class="plot-wrapper">
@@ -99,11 +110,12 @@
   </div>
 
 <script>
-  const X1_values = [-1, 1];
-  const X2_values = [-1, 1];
   const X1_full = [-1, 1, -1, 1];
   const X2_full = [-1, -1, 1, 1];
   const defaultY = [1, 2, 3, 8];
+
+  const X1_values = [-1, 1];
+  const X2_values = [-1, 1];
 
   let paretoChart, mainEffectPlotX1, mainEffectPlotX2, interactionPlotX1, interactionPlotX2;
 
@@ -121,13 +133,42 @@
     calculate();
   };
 
+  // Calculate coefficients for 2^2 full factorial (Intercept, X1, X2, X1*X2)
+  function getCoefficients(Y) {
+    const n = Y.length;
+    // Using contrast method for full factorial 2^2 design
+    // Intercept:
+    const b0 = math.mean(Y);
+    // Effects:
+    // b1 = (Y1 - Y2 + Y3 - Y4)/4
+    // b2 = (Y1 + Y2 - Y3 - Y4)/4
+    // b12= (Y1 - Y2 - Y3 + Y4)/4
+    const b1 = (Y[0] - Y[1] + Y[2] - Y[3]) / 4;
+    const b2 = (Y[0] + Y[1] - Y[2] - Y[3]) / 4;
+    const b12= (Y[0] - Y[1] - Y[2] + Y[3]) / 4;
+    return [b0, b1, b2, b12];
+  }
+
+  // Calculate Y from coefficients and inputs
+  function calculate_Y(coefficients, x1, x2) {
+    // x1 and x2 can be scalars or arrays
+    if (Array.isArray(x1) && Array.isArray(x2)) {
+      return x1.map((v,i) => coefficients[0] + coefficients[1]*x1[i] + coefficients[2]*x2[i] + coefficients[3]*x1[i]*x2[i]);
+    } else if (Array.isArray(x1)) {
+      return x1.map(v => coefficients[0] + coefficients[1]*v + coefficients[2]*x2 + coefficients[3]*v*x2);
+    } else if (Array.isArray(x2)) {
+      return x2.map(v => coefficients[0] + coefficients[1]*x1 + coefficients[2]*v + coefficients[3]*x1*v);
+    } else {
+      return coefficients[0] + coefficients[1]*x1 + coefficients[2]*x2 + coefficients[3]*x1*x2;
+    }
+  }
+
   function calculate() {
     const Y = [0,0,0,0].map((_,i) => parseFloat(document.getElementById("Y"+i).value));
-
-    const coeffs = getCoefficients(Y);
+    const coefficients = getCoefficients(Y);
 
     document.getElementById("equation-result").textContent =
-      `Estimated Equation:\nY = ${coeffs.map((c,i) =>
+      `Estimated Equation:\nY = ${coefficients.map((c,i) =>
         `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
       ).join('')}`;
 
@@ -139,132 +180,200 @@
         labels: ["X1", "X2", "X1·X2"],
         datasets: [{
           label: "Effect",
-          data: coeffs.slice(1).map(Math.abs),
+          data: coefficients.slice(1).map(Math.abs),
           backgroundColor: "gray"
         }]
       },
       options: {
-        indexAxis: 'y', // horizontal bars
-        plugins: { legend: { display: false } },
-        responsive: false,
-        scales: { x: { beginAtZero: true } }
-      }
-    });
-
-    // Calculate Y for main and interaction plots
-    const calcY = (x1, x2) => coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
-
-    // Main effect Y vs X1 at X2=0
-    const Y_X1_main = X1_values.map(x => calcY(x, 0));
-    // Main effect Y vs X2 at X1=0
-    const Y_X2_main = X2_values.map(x => calcY(0, x));
-
-    // Interaction Y vs X1 for X2=-1 and X2=1
-    const Y_X1_int_neg = X1_values.map(x => calcY(x, -1));
-    const Y_X1_int_pos = X1_values.map(x => calcY(x, 1));
-
-    // Interaction Y vs X2 for X1=-1 and X1=1
-    const Y_X2_int_neg = X2_values.map(x => calcY(-1, x));
-    const Y_X2_int_pos = X2_values.map(x => calcY(1, x));
-
-    // Plot main effect X1 (single line with points, black)
-    if (mainEffectPlotX1) mainEffectPlotX1.destroy();
-    mainEffectPlotX1 = createLinePlot('mainEffectPlotX1', X1_values,
-      [Y_X1_main],
-      ['X2=0'],
-      'X1', 'Y',
-      ['black']);
-
-    // Plot main effect X2
-    if (mainEffectPlotX2) mainEffectPlotX2.destroy();
-    mainEffectPlotX2 = createLinePlot('mainEffectPlotX2', X2_values,
-      [Y_X2_main],
-      ['X1=0'],
-      'X2', 'Y',
-      ['black']);
-
-    // Plot interaction X1 at X2=-1 and X2=1
-    if (interactionPlotX1) interactionPlotX1.destroy();
-    interactionPlotX1 = createLinePlot('interactionPlotX1', X1_values,
-      [Y_X1_int_neg, Y_X1_int_pos],
-      ['X2=-1', 'X2=1'],
-      'X1', 'Y',
-      ['blue', 'green']);
-
-    // Plot interaction X2 at X1=-1 and X1=1
-    if (interactionPlotX2) interactionPlotX2.destroy();
-    interactionPlotX2 = createLinePlot('interactionPlotX2', X2_values,
-      [Y_X2_int_neg, Y_X2_int_pos],
-      ['X1=-1', 'X1=1'],
-      'X2', 'Y',
-      ['blue', 'green']);
-
-    // Contour plot
-    plotContour(coeffs);
-  }
-
-  // Regression coefficients calculation
-  function getCoefficients(Y) {
-    const X = X1_full.map((x1, i) => [1, x1, X2_full[i], x1*X2_full[i]]);
-    const XT = math.transpose(X);
-    const XTX = math.multiply(XT, X);
-    const XTY = math.multiply(XT, Y);
-    return math.lusolve(XTX, XTY).flat();
-  }
-
-  // Create line plot with points and lines (like your original plots)
-  function createLinePlot(canvasId, xVals, yArrays, labels, xLabel, yLabel, colors) {
-    const ctx = document.getElementById(canvasId).getContext("2d");
-    const datasets = yArrays.map((yarr, i) => ({
-      label: labels[i],
-      data: xVals.map((x, idx) => ({x: x, y: yarr[idx]})),
-      borderColor: colors[i],
-      backgroundColor: colors[i],
-      fill: false,
-      showLine: true,
-      pointRadius: 5,
-      tension: 0
-    }));
-    return new Chart(ctx, {
-      type: 'scatter',
-      data: { datasets },
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-            title: { display: true, text: xLabel },
-            ticks: { values: xVals }
-          },
-          y: {
-            title: { display: true, text: yLabel }
-          }
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
         },
-        plugins: { legend: { display: labels.length > 1 } },
-        responsive: false
+        scales: {
+          x: { beginAtZero: true }
+        }
       }
     });
-  }
 
-  // Plotly contour plot
-  function plotContour(coeffs) {
-    const calcY = (x1, x2) => coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
-    const x = math.range(-1, 1.01, 0.05).toArray();
-    const y = math.range(-1, 1.01, 0.05).toArray();
-    const z = y.map(yVal => x.map(xVal => calcY(xVal, yVal)));
+    // Contour plot for Y(X1, X2)
+    const gridPoints = 50;
+    let x1grid = [], x2grid = [], zgrid = [];
+    for(let i=0; i<gridPoints; i++) {
+      x1grid.push(-1 + 2*i/(gridPoints-1));
+      x2grid.push(-1 + 2*i/(gridPoints-1));
+    }
+    for(let i=0; i<gridPoints; i++) {
+      let row = [];
+      for(let j=0; j<gridPoints; j++) {
+        row.push(calculate_Y(coefficients, x1grid[j], x2grid[i]));
+      }
+      zgrid.push(row);
+    }
 
     Plotly.newPlot('contourPlot', [{
-      z: z,
-      x: x,
-      y: y,
+      z: zgrid,
+      x: x1grid,
+      y: x2grid,
       type: 'contour',
       colorscale: 'Viridis',
-      contours: { coloring: 'heatmap', showlabels: true }
+      contours: { coloring: 'heatmap' }
     }], {
-      margin: { t: 30, b: 50, l: 50, r: 30 },
-      width: 400,
-      height: 400,
-      xaxis: { title: 'X1', scaleanchor: 'y' },
-      yaxis: { title: 'X2' }
+      margin: { t: 20 },
+      xaxis: { title: 'X1' },
+      yaxis: { title: 'X2', scaleanchor: 'x', scaleratio: 1 }
+    });
+
+    // Main effect plots
+    // Calculate Y for X1 (fix X2 = -1 and 1)
+    const Y_X1_at_X2_neg1 = calculate_Y(coefficients, X1_values, -1);
+    const Y_X1_at_X2_pos1 = calculate_Y(coefficients, X1_values, 1);
+    // Calculate Y for X2 (fix X1 = -1 and 1)
+    const Y_X2_at_X1_neg1 = calculate_Y(coefficients, -1, X2_values);
+    const Y_X2_at_X1_pos1 = calculate_Y(coefficients, 1, X2_values);
+
+    // Interaction plots (same as main but separate canvas)
+    // Y vs X1 at X2 = -1 and 1
+    const Y_int_X1_at_X2_neg1 = Y_X1_at_X2_neg1;
+    const Y_int_X1_at_X2_pos1 = Y_X1_at_X2_pos1;
+    // Y vs X2 at X1 = -1 and 1
+    const Y_int_X2_at_X1_neg1 = Y_X2_at_X1_neg1;
+    const Y_int_X2_at_X1_pos1 = Y_X2_at_X1_pos1;
+
+    // Plot mainEffectPlotX1
+    if(mainEffectPlotX1) mainEffectPlotX1.destroy();
+    mainEffectPlotX1 = new Chart(document.getElementById("mainEffectPlotX1"), {
+      type: 'line',
+      data: {
+        labels: X1_values,
+        datasets: [
+          {label: 'X2 = -1', data: Y_X1_at_X2_neg1, borderColor: 'blue', backgroundColor: 'blue', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+          {label: 'X2 = 1', data: Y_X1_at_X2_pos1, borderColor: 'green', backgroundColor: 'green', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: "Y for main effect"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "X1"
+            },
+            ticks: {
+              callback: v => v.toString()
+            }
+          }
+        }
+      }
+    });
+
+    // Plot mainEffectPlotX2
+    if(mainEffectPlotX2) mainEffectPlotX2.destroy();
+    mainEffectPlotX2 = new Chart(document.getElementById("mainEffectPlotX2"), {
+      type: 'line',
+      data: {
+        labels: X2_values,
+        datasets: [
+          {label: 'X1 = -1', data: Y_X2_at_X1_neg1, borderColor: 'blue', backgroundColor: 'blue', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+          {label: 'X1 = 1', data: Y_X2_at_X1_pos1, borderColor: 'green', backgroundColor: 'green', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: "Y for main effect"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "X2"
+            },
+            ticks: {
+              callback: v => v.toString()
+            }
+          }
+        }
+      }
+    });
+
+    // Plot interactionPlotX1
+    if(interactionPlotX1) interactionPlotX1.destroy();
+    interactionPlotX1 = new Chart(document.getElementById("interactionPlotX1"), {
+      type: 'line',
+      data: {
+        labels: X1_values,
+        datasets: [
+          {label: 'X2 = -1', data: Y_int_X1_at_X2_neg1, borderColor: 'blue', backgroundColor: 'blue', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+          {label: 'X2 = 1', data: Y_int_X1_at_X2_pos1, borderColor: 'green', backgroundColor: 'green', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: "Y"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "X1"
+            },
+            ticks: {
+              callback: v => v.toString()
+            }
+          }
+        }
+      }
+    });
+
+    // Plot interactionPlotX2
+    if(interactionPlotX2) interactionPlotX2.destroy();
+    interactionPlotX2 = new Chart(document.getElementById("interactionPlotX2"), {
+      type: 'line',
+      data: {
+        labels: X2_values,
+        datasets: [
+          {label: 'X1 = -1', data: Y_int_X2_at_X1_neg1, borderColor: 'blue', backgroundColor: 'blue', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+          {label: 'X1 = 1', data: Y_int_X2_at_X1_pos1, borderColor: 'green', backgroundColor: 'green', fill:false, tension:0.1, pointStyle:'circle', pointRadius:5},
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: "Y"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "X2"
+            },
+            ticks: {
+              callback: v => v.toString()
+            }
+          }
+        }
+      }
     });
   }
 </script>
