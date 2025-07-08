@@ -8,6 +8,8 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
+      background-color: white;
+      color: black;
     }
 
     .input-section {
@@ -26,8 +28,9 @@
       flex: 1;
       font-weight: bold;
       padding: 10px;
-      border: 1px solid #ccc;
+      border: 1px solid #000;
       height: fit-content;
+      white-space: pre-wrap;
     }
 
     table {
@@ -35,7 +38,7 @@
     }
 
     td, th {
-      border: 1px solid #ccc;
+      border: 1px solid #000;
       padding: 5px 10px;
       text-align: center;
     }
@@ -49,6 +52,7 @@
     .plot-container {
       width: 100%;
       max-width: 500px;
+      background-color: white;
     }
   </style>
 </head>
@@ -65,7 +69,7 @@
       <button onclick="calculate()">Calculate</button>
     </div>
     <div class="equation-box" id="equation-result">
-      <!-- Equation result will appear here -->
+      <!-- Equation will be displayed here -->
     </div>
   </div>
 
@@ -80,7 +84,7 @@
   <script>
     const X1 = [-1, -1, 1, 1];
     const X2 = [-1, 1, -1, 1];
-    const defaultY = [10, 15, 14, 20];
+    const defaultY = [1, 2, 3, 8]; // your specified default values
 
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
@@ -93,6 +97,7 @@
         `;
         tbody.appendChild(row);
       }
+      calculate(); // trigger calculation and plots on page load
     };
 
     function calculate() {
@@ -128,17 +133,23 @@
           datasets: [{
             label: "Effect",
             data: coeffs.slice(1).map(Math.abs),
-            backgroundColor: ["blue", "green", "purple"]
+            backgroundColor: "#000"
           }]
         },
         options: {
           responsive: true,
-          indexAxis: 'y', // horizontal bars (as it originally was)
+          indexAxis: 'y',
           plugins: {
+            legend: { display: false },
             title: {
               display: true,
-              text: 'Pareto Chart'
+              text: 'Pareto Chart',
+              color: "#000"
             }
+          },
+          scales: {
+            x: { ticks: { color: "#000" }, grid: { color: "#aaa" } },
+            y: { ticks: { color: "#000" }, grid: { color: "#aaa" } }
           }
         }
       });
@@ -154,13 +165,20 @@
         data: {
           labels: x,
           datasets: [
-            { label: "X2 = -1", data: yLow, borderColor: "blue", fill: false },
-            { label: "X2 = +1", data: yHigh, borderColor: "green", fill: false }
+            { label: "X2 = -1", data: yLow, borderColor: "#000", fill: false },
+            { label: "X2 = +1", data: yHigh, borderColor: "#888", fill: false }
           ]
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: "Interaction Plot" } }
+          plugins: {
+            title: { display: true, text: "Interaction Plot", color: "#000" },
+            legend: { labels: { color: "#000" } }
+          },
+          scales: {
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+          }
         }
       });
     }
@@ -174,11 +192,23 @@
         type: "line",
         data: {
           labels: x,
-          datasets: [{ label: "Y vs X1 (X2=0)", data: yX1, borderColor: "purple", fill: false }]
+          datasets: [{
+            label: "Y vs X1 (X2=0)",
+            data: yX1,
+            borderColor: "#000",
+            fill: false
+          }]
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: "Main Effect: X1" } }
+          plugins: {
+            title: { display: true, text: "Main Effect: X1", color: "#000" },
+            legend: { labels: { color: "#000" } }
+          },
+          scales: {
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+          }
         }
       });
 
@@ -186,11 +216,23 @@
         type: "line",
         data: {
           labels: x,
-          datasets: [{ label: "Y vs X2 (X1=0)", data: yX2, borderColor: "orange", fill: false }]
+          datasets: [{
+            label: "Y vs X2 (X1=0)",
+            data: yX2,
+            borderColor: "#444",
+            fill: false
+          }]
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: "Main Effect: X2" } }
+          plugins: {
+            title: { display: true, text: "Main Effect: X2", color: "#000" },
+            legend: { labels: { color: "#000" } }
+          },
+          scales: {
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+          }
         }
       });
     }
