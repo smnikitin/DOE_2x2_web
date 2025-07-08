@@ -72,15 +72,13 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
   <script>
-    // Factor levels and default responses
     const X1 = [-1, 1, -1, 1];
     const X2 = [-1, -1, 1, 1];
     const defaultY = [1, 2, 3, 8];
 
-    // Global variables to store Chart.js chart instances
+    // Store chart instances to destroy before redrawing
     let paretoChart, interactionChart, mainEffectX1Chart, mainEffectX2Chart;
 
-    // Initialize the input table with default values
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
       for (let i = 0; i < 4; i++) {
@@ -92,27 +90,26 @@
         `;
         tbody.appendChild(row);
       }
-      calculate(); // Initial plot
+      calculate();
     };
 
-    // Main calculation and plotting function
     function calculate() {
-      // Read Y values from input fields
+      // Read Y values from inputs
       const Y = [0, 0, 0, 0].map((_, i) => parseFloat(document.getElementById('Y' + i).value));
-      // Calculate regression coefficients
+      // Calculate coefficients
       const coefficients = getCoefficients(Y);
-      // Show the estimated regression equation
+
+      // Display estimated equation
       document.getElementById("equation-result").textContent =
         `Estimated Equation:\nY = ${coefficients.map((c, i) =>
           `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
 
-      // Plot all charts with updated coefficients
+      // Plot updated charts
       plotPareto(coefficients);
       plotInteraction(coefficients);
       plotMainEffect(coefficients);
     }
 
-    // Calculate regression coefficients using least squares
     function getCoefficients(Y) {
       const X = X1.map((x1, i) => [1, x1, X2[i], x1 * X2[i]]);
       const XT = math.transpose(X);
@@ -121,14 +118,12 @@
       return math.lusolve(XTX, XTY).flat();
     }
 
-    // Compute predicted Y for given coefficients and factor levels
     function calculateY(coeffs, x1, x2) {
       return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
     }
 
-    // Plot Pareto chart of absolute effects
     function plotPareto(coeffs) {
-      if (paretoChart) paretoChart.destroy(); // Destroy existing chart if any
+      if (paretoChart) paretoChart.destroy();
       paretoChart = new Chart("paretoChart", {
         type: "bar",
         data: {
@@ -144,11 +139,7 @@
           indexAxis: 'y',
           plugins: {
             legend: { display: false },
-            title: {
-              display: true,
-              text: 'Pareto Chart',
-              color: "#000"
-            }
+            title: { display: true, text: 'Pareto Chart', color: "#000" }
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#aaa" } },
@@ -158,9 +149,8 @@
       });
     }
 
-    // Plot interaction effects
     function plotInteraction(coeffs) {
-      if (interactionChart) interactionChart.destroy(); // Destroy existing chart if any
+      if (interactionChart) interactionChart.destroy();
       const x = [-1, 1];
       const yLow = x.map(x1 => calculateY(coeffs, x1, -1));
       const yHigh = x.map(x1 => calculateY(coeffs, x1, 1));
@@ -188,7 +178,6 @@
       });
     }
 
-    // Plot main effects of X1 and X2 with shared Y-axis limits
     function plotMainEffect(coeffs) {
       if (mainEffectX1Chart) mainEffectX1Chart.destroy();
       if (mainEffectX2Chart) mainEffectX2Chart.destroy();
@@ -197,7 +186,7 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
-      // Calculate shared Y-axis limits with padding
+      // Shared Y-axis limits with padding
       const allY = yX1.concat(yX2);
       const minY = Math.min(...allY);
       const maxY = Math.max(...allY);
@@ -237,4 +226,24 @@
           labels: x,
           datasets: [{
             label: "Y vs X2 (X1=0)",
-            data: yX
+            data: yX2,
+            borderColor: "#444",
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: "Main Effect: X2", color: "#000" },
+            legend: { labels: { color: "#000" } }
+          },
+          scales: {
+            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
