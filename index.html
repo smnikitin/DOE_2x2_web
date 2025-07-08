@@ -39,7 +39,7 @@
     }
     .plots {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
     }
     .plot-container {
@@ -65,7 +65,8 @@
   </div>
   <div class="plots">
     <div class="plot-container"><canvas id="paretoChart"></canvas></div>
-    <div class="plot-container"><canvas id="interactionPlot"></canvas></div>
+    <div class="plot-container"><canvas id="interactionPlotX1"></canvas></div>
+    <div class="plot-container"><canvas id="interactionPlotX2"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
   </div>
@@ -77,7 +78,7 @@
     const defaultY = [1, 2, 3, 8];
 
     // Store chart instances to destroy before redrawing
-    let paretoChart, interactionChart, mainEffectX1Chart, mainEffectX2Chart;
+    let paretoChart, interactionChartX1, interactionChartX2, mainEffectX1Chart, mainEffectX2Chart;
 
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
@@ -150,29 +151,127 @@
     }
 
     function plotInteraction(coeffs) {
-      if (interactionChart) interactionChart.destroy();
-      const x = [-1, 1];
-      const yLow = x.map(x1 => calculateY(coeffs, x1, -1));
-      const yHigh = x.map(x1 => calculateY(coeffs, x1, 1));
+      if (interactionChartX1) interactionChartX1.destroy();
+      if (interactionChartX2) interactionChartX2.destroy();
 
-      interactionChart = new Chart("interactionPlot", {
+      const xValues = [-1, 1];
+
+      // Calculate Y for X1 at X2 = -1 and 1
+      const Y_X1_at_X2_neg1 = xValues.map(x1 => calculateY(coeffs, x1, -1));
+      const Y_X1_at_X2_pos1 = xValues.map(x1 => calculateY(coeffs, x1, 1));
+
+      // Calculate Y for X2 at X1 = -1 and 1
+      const Y_X2_at_X1_neg1 = xValues.map(x2 => calculateY(coeffs, -1, x2));
+      const Y_X2_at_X1_pos1 = xValues.map(x2 => calculateY(coeffs, 1, x2));
+
+      // Find shared Y limits
+      const allY = Y_X1_at_X2_neg1.concat(Y_X1_at_X2_pos1, Y_X2_at_X1_neg1, Y_X2_at_X1_pos1);
+      const minY = Math.min(...allY);
+      const maxY = Math.max(...allY);
+      const padding = 0.1 * (maxY - minY || 1);
+      const yAxisLimits = {
+        min: minY - padding,
+        max: maxY + padding
+      };
+
+      // Plot Y vs X1 (for X2 = -1 and 1)
+      interactionChartX1 = new Chart("interactionPlotX1", {
         type: "line",
         data: {
-          labels: x,
+          labels: xValues,
           datasets: [
-            { label: "X2 = -1", data: yLow, borderColor: "#000", fill: false },
-            { label: "X2 = +1", data: yHigh, borderColor: "#888", fill: false }
-          ]
+            {
+              label: "X2 = -1",
+              data: Y_X1_at_X2_neg1,
+              borderColor: "blue",
+              backgroundColor: "blue",
+              fill: false,
+              tension: 0.4,
+              pointStyle: 'circle',
+              pointRadius: 5,
+            },
+            {
+              label: "X2 = +1",
+              data: Y_X1_at_X2_pos1,
+              borderColor: "green",
+              backgroundColor: "green",
+              fill: false,
+              tension: 0.4,
+              pointStyle: 'circle',
+              pointRadius: 5,
+            },
+          ],
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Interaction Plot", color: "#000" },
+            title: { display: true, text: "Y vs X1", color: "#000" },
             legend: { labels: { color: "#000" } }
           },
           scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            x: {
+              title: { display: true, text: "X1", color: "#000" },
+              ticks: { color: "#000", stepSize: 1 },
+              grid: { color: "#ccc" }
+            },
+            y: {
+              min: yAxisLimits.min,
+              max: yAxisLimits.max,
+              title: { display: true, text: "Y", color: "#000" },
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
+          }
+        }
+      });
+
+      // Plot Y vs X2 (for X1 = -1 and 1)
+      interactionChartX2 = new Chart("interactionPlotX2", {
+        type: "line",
+        data: {
+          labels: xValues,
+          datasets: [
+            {
+              label: "X1 = -1",
+              data: Y_X2_at_X1_neg1,
+              borderColor: "blue",
+              backgroundColor: "blue",
+              fill: false,
+              tension: 0.4,
+              pointStyle: 'circle',
+              pointRadius: 5,
+            },
+            {
+              label: "X1 = +1",
+              data: Y_X2_at_X1_pos1,
+              borderColor: "green",
+              backgroundColor: "green",
+              fill: false,
+              tension: 0.4,
+              pointStyle: 'circle',
+              pointRadius: 5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: "Y vs X2", color: "#000" },
+            legend: { labels: { color: "#000" } }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "X2", color: "#000" },
+              ticks: { color: "#000", stepSize: 1 },
+              grid: { color: "#ccc" }
+            },
+            y: {
+              min: yAxisLimits.min,
+              max: yAxisLimits.max,
+              title: { display: true, text: "Y", color: "#000" },
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
           }
         }
       });
@@ -192,8 +291,8 @@
       const maxY = Math.max(...allY);
       const padding = 0.1 * (maxY - minY || 1);
       const sharedY = {
-        suggestedMin: minY - padding,
-        suggestedMax: maxY + padding
+        min: minY - padding,
+        max: maxY + padding,
       };
 
       mainEffectX1Chart = new Chart("mainEffectX1", {
@@ -201,21 +300,34 @@
         data: {
           labels: x,
           datasets: [{
-            label: "Y vs X1 (X2=0)",
+            label: "Y vs X1",
             data: yX1,
-            borderColor: "#000",
-            fill: false
+            borderColor: "blue",
+            backgroundColor: "blue",
+            fill: false,
+            tension: 0.4,
+            pointRadius: 5,
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Main Effect: X1", color: "#000" },
-            legend: { labels: { color: "#000" } }
+            title: { display: true, text: "Main Effect X1", color: "#000" },
+            legend: { display: false }
           },
           scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            x: {
+              title: { display: true, text: "X1", color: "#000" },
+              ticks: { color: "#000", stepSize: 1 },
+              grid: { color: "#ccc" }
+            },
+            y: {
+              min: sharedY.min,
+              max: sharedY.max,
+              title: { display: true, text: "Y", color: "#000" },
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
           }
         }
       });
@@ -225,21 +337,34 @@
         data: {
           labels: x,
           datasets: [{
-            label: "Y vs X2 (X1=0)",
+            label: "Y vs X2",
             data: yX2,
-            borderColor: "#444",
-            fill: false
+            borderColor: "green",
+            backgroundColor: "green",
+            fill: false,
+            tension: 0.4,
+            pointRadius: 5,
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: "Main Effect: X2", color: "#000" },
-            legend: { labels: { color: "#000" } }
+            title: { display: true, text: "Main Effect X2", color: "#000" },
+            legend: { display: false }
           },
           scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            x: {
+              title: { display: true, text: "X2", color: "#000" },
+              ticks: { color: "#000", stepSize: 1 },
+              grid: { color: "#ccc" }
+            },
+            y: {
+              min: sharedY.min,
+              max: sharedY.max,
+              title: { display: true, text: "Y", color: "#000" },
+              ticks: { color: "#000" },
+              grid: { color: "#ccc" }
+            }
           }
         }
       });
