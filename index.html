@@ -149,6 +149,7 @@
       return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
     }
 
+    // --- Pareto chart - REVERTED TO PREVIOUS ---
     function plotPareto(coeffs) {
       if (paretoChart) paretoChart.destroy();
       paretoChart = new Chart("paretoChart", {
@@ -230,6 +231,7 @@
       });
     }
 
+    // --- Main effect plots WITH shared Y axis limits ---
     function plotMainEffect(coeffs) {
       if (mainEffectX1Chart) mainEffectX1Chart.destroy();
       if (mainEffectX2Chart) mainEffectX2Chart.destroy();
@@ -238,6 +240,7 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
+      // Shared Y-axis limits calculation
       const maxY = Math.max(...yX1, ...yX2);
       const minY = Math.min(...yX1, ...yX2);
       const padding = 0.1 * (maxY - minY);
@@ -302,6 +305,7 @@
       });
     }
 
+    // --- Contour plot - REVERTED TO PREVIOUS ---
     function plotContour(coeffs) {
       const xRange = math.range(-1, 1.01, 0.05).toArray();
       const yRange = math.range(-1, 1.01, 0.05).toArray();
@@ -321,7 +325,8 @@
         title: 'Contour Plot of Y(X1, X2)',
         xaxis: { title: 'X1' },
         yaxis: { title: 'X2' },
-        margin: { t: 30 }
+        margin: { t: 30 },
+        aspectratio: { x: 1, y: 1 }
       }, { responsive: true });
     }
   </script>
