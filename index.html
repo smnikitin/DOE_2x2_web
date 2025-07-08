@@ -14,25 +14,16 @@
       color: black;
     }
 
-    .input-section {
+    .top-section {
       display: flex;
-      justify-content: flex-start;
-      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 20px;
+      align-items: flex-start;
       margin-bottom: 10px;
     }
 
     .input-table {
       flex: 0 0 auto;
-    }
-
-    .equation-box {
-      margin-top: 10px;
-      font-weight: bold;
-      padding: 10px;
-      border: 1px solid #000;
-      white-space: pre-wrap;
-      max-width: 1000px;
     }
 
     table {
@@ -45,10 +36,30 @@
       text-align: center;
     }
 
+    .chart-box {
+      flex: 1;
+      max-width: 400px;
+    }
+
+    #contourPlot {
+      width: 100%;
+      height: 400px;
+    }
+
+    .equation-box {
+      margin-top: 10px;
+      font-weight: bold;
+      padding: 10px;
+      border: 1px solid #000;
+      white-space: pre-wrap;
+      max-width: 100%;
+    }
+
     .plots {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
+      margin-top: 20px;
     }
 
     .plot-container {
@@ -56,17 +67,13 @@
       max-width: 500px;
       background-color: white;
     }
-
-    #contourPlot {
-      width: 500px;
-      height: 400px;
-    }
   </style>
 </head>
 <body>
   <h2>Design of Experiments - Input</h2>
 
-  <div class="input-section">
+  <div class="top-section">
+    <!-- Input Table -->
     <div class="input-table">
       <table>
         <thead>
@@ -76,13 +83,23 @@
       </table>
       <button onclick="calculate()">Calculate</button>
     </div>
-    <div id="contourPlot"></div>
+
+    <!-- Pareto Chart -->
+    <div class="chart-box">
+      <canvas id="paretoChart"></canvas>
+    </div>
+
+    <!-- Contour Plot -->
+    <div class="chart-box">
+      <div id="contourPlot"></div>
+    </div>
   </div>
 
+  <!-- Estimated Equation -->
   <div class="equation-box" id="equation-result"></div>
 
+  <!-- Other Plots -->
   <div class="plots">
-    <div class="plot-container"><canvas id="paretoChart"></canvas></div>
     <div class="plot-container"><canvas id="interactionPlotX1"></canvas></div>
     <div class="plot-container"><canvas id="interactionPlotX2"></canvas></div>
     <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
@@ -166,7 +183,6 @@
     function plotInteraction(coeffs) {
       const x = [-1, 1];
 
-      // Y vs X1
       const yX1_low = x.map(x1 => calculateY(coeffs, x1, -1));
       const yX1_high = x.map(x1 => calculateY(coeffs, x1, 1));
       if (interactionChartX1) interactionChartX1.destroy();
@@ -192,7 +208,6 @@
         }
       });
 
-      // Y vs X2
       const yX2_low = x.map(x2 => calculateY(coeffs, -1, x2));
       const yX2_high = x.map(x2 => calculateY(coeffs, 1, x2));
       if (interactionChartX2) interactionChartX2.destroy();
@@ -227,15 +242,6 @@
       const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
       const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
 
-      const allY = yX1.concat(yX2);
-      const minY = Math.min(...allY);
-      const maxY = Math.max(...allY);
-      const padding = 0.1 * (maxY - minY || 1);
-      const sharedY = {
-        suggestedMin: minY - padding,
-        suggestedMax: maxY + padding
-      };
-
       mainEffectX1Chart = new Chart("mainEffectX1", {
         type: "line",
         data: {
@@ -255,7 +261,7 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
@@ -279,7 +285,7 @@
           },
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ...sharedY, ticks: { color: "#000" }, grid: { color: "#ccc" } }
+            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
