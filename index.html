@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <title>DOE Visualizer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,14 +15,13 @@
 
     .top-section {
       display: flex;
-      flex-wrap: wrap;
       gap: 20px;
       align-items: flex-start;
       margin-bottom: 10px;
     }
 
-    .input-table {
-      flex: 0 0 auto;
+    .input-table, .plot-container {
+      background-color: white;
     }
 
     table {
@@ -36,36 +34,27 @@
       text-align: center;
     }
 
-    .chart-box {
-      flex: 1;
-      max-width: 400px;
-    }
-
-    #contourPlot {
-      width: 100%;
-      height: 400px;
-    }
-
     .equation-box {
-      margin-top: 10px;
       font-weight: bold;
       padding: 10px;
       border: 1px solid #000;
       white-space: pre-wrap;
-      max-width: 100%;
-    }
-
-    .plots {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
       margin-top: 20px;
     }
 
-    .plot-container {
-      width: 100%;
-      max-width: 500px;
+    canvas {
       background-color: white;
+    }
+
+    #contourPlot {
+      width: 400px;
+      height: 400px;
+    }
+
+    .plot-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
   </style>
 </head>
@@ -85,33 +74,26 @@
     </div>
 
     <!-- Pareto Chart -->
-    <div class="chart-box">
-      <canvas id="paretoChart"></canvas>
+    <div class="plot-wrapper">
+      <canvas id="paretoChart" width="400" height="400"></canvas>
     </div>
 
     <!-- Contour Plot -->
-    <div class="chart-box">
+    <div class="plot-wrapper">
       <div id="contourPlot"></div>
     </div>
   </div>
 
-  <!-- Estimated Equation -->
+  <!-- Equation Result -->
   <div class="equation-box" id="equation-result"></div>
 
-  <!-- Other Plots -->
-  <div class="plots">
-    <div class="plot-container"><canvas id="interactionPlotX1"></canvas></div>
-    <div class="plot-container"><canvas id="interactionPlotX2"></canvas></div>
-    <div class="plot-container"><canvas id="mainEffectX1"></canvas></div>
-    <div class="plot-container"><canvas id="mainEffectX2"></canvas></div>
-  </div>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
   <script>
     const X1 = [-1, 1, -1, 1];
     const X2 = [-1, -1, 1, 1];
     const defaultY = [1, 2, 3, 8];
 
-    let paretoChart, interactionChartX1, interactionChartX2, mainEffectX1Chart, mainEffectX2Chart;
+    let paretoChart;
 
     window.onload = () => {
       const tbody = document.getElementById('input-rows');
@@ -136,8 +118,6 @@
           `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`).join('')}`;
 
       plotPareto(coefficients);
-      plotInteraction(coefficients);
-      plotMainEffect(coefficients);
       plotContour(coefficients);
     }
 
@@ -166,7 +146,7 @@
           }]
         },
         options: {
-          responsive: true,
+          responsive: false,
           indexAxis: 'y',
           plugins: {
             legend: { display: false },
@@ -175,117 +155,6 @@
           scales: {
             x: { ticks: { color: "#000" }, grid: { color: "#aaa" } },
             y: { ticks: { color: "#000" }, grid: { color: "#aaa" } }
-          }
-        }
-      });
-    }
-
-    function plotInteraction(coeffs) {
-      const x = [-1, 1];
-
-      const yX1_low = x.map(x1 => calculateY(coeffs, x1, -1));
-      const yX1_high = x.map(x1 => calculateY(coeffs, x1, 1));
-      if (interactionChartX1) interactionChartX1.destroy();
-      interactionChartX1 = new Chart("interactionPlotX1", {
-        type: "line",
-        data: {
-          labels: x,
-          datasets: [
-            { label: "X2 = -1", data: yX1_low, borderColor: "#000", fill: false },
-            { label: "X2 = +1", data: yX1_high, borderColor: "#888", fill: false }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: "Interaction: Y vs X1", color: "#000" },
-            legend: { labels: { color: "#000" } }
-          },
-          scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
-          }
-        }
-      });
-
-      const yX2_low = x.map(x2 => calculateY(coeffs, -1, x2));
-      const yX2_high = x.map(x2 => calculateY(coeffs, 1, x2));
-      if (interactionChartX2) interactionChartX2.destroy();
-      interactionChartX2 = new Chart("interactionPlotX2", {
-        type: "line",
-        data: {
-          labels: x,
-          datasets: [
-            { label: "X1 = -1", data: yX2_low, borderColor: "#000", fill: false },
-            { label: "X1 = +1", data: yX2_high, borderColor: "#888", fill: false }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: "Interaction: Y vs X2", color: "#000" },
-            legend: { labels: { color: "#000" } }
-          },
-          scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
-          }
-        }
-      });
-    }
-
-    function plotMainEffect(coeffs) {
-      if (mainEffectX1Chart) mainEffectX1Chart.destroy();
-      if (mainEffectX2Chart) mainEffectX2Chart.destroy();
-
-      const x = [-1, 1];
-      const yX1 = x.map(x1 => calculateY(coeffs, x1, 0));
-      const yX2 = x.map(x2 => calculateY(coeffs, 0, x2));
-
-      mainEffectX1Chart = new Chart("mainEffectX1", {
-        type: "line",
-        data: {
-          labels: x,
-          datasets: [{
-            label: "Y vs X1 (X2=0)",
-            data: yX1,
-            borderColor: "#000",
-            fill: false
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: "Main Effect: X1", color: "#000" },
-            legend: { labels: { color: "#000" } }
-          },
-          scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
-          }
-        }
-      });
-
-      mainEffectX2Chart = new Chart("mainEffectX2", {
-        type: "line",
-        data: {
-          labels: x,
-          datasets: [{
-            label: "Y vs X2 (X1=0)",
-            data: yX2,
-            borderColor: "#444",
-            fill: false
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: { display: true, text: "Main Effect: X2", color: "#000" },
-            legend: { labels: { color: "#000" } }
-          },
-          scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
           }
         }
       });
@@ -308,9 +177,11 @@
         }
       }], {
         title: 'Contour Plot of Y(X1, X2)',
-        xaxis: { title: 'X1' },
+        xaxis: { title: 'X1', scaleanchor: 'y' },
         yaxis: { title: 'X2' },
-        margin: { t: 30 }
+        margin: { t: 30 },
+        width: 400,
+        height: 400
       }, { responsive: true });
     }
   </script>
