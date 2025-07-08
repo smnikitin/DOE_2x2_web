@@ -315,6 +315,29 @@
       });
     }
 
+    // Color interpolation helper for blue-white-red gradient
+    function interpolateColor(value) {
+      // value: normalized between 0 and 1
+      // 0 => blue (0, 0, 255)
+      // 0.5 => white (255, 255, 255)
+      // 1 => red (255, 0, 0)
+      if (value <= 0.5) {
+        // interpolate blue to white
+        const ratio = value / 0.5;
+        const r = Math.round(255 * ratio);
+        const g = Math.round(255 * ratio);
+        const b = 255;
+        return `rgb(${r},${g},${b})`;
+      } else {
+        // interpolate white to red
+        const ratio = (value - 0.5) / 0.5;
+        const r = 255;
+        const g = Math.round(255 * (1 - ratio));
+        const b = Math.round(255 * (1 - ratio));
+        return `rgb(${r},${g},${b})`;
+      }
+    }
+
     function plotHeatmap(coeffs) {
       if (heatmapChart) heatmapChart.destroy();
 
@@ -337,10 +360,7 @@
 
       const norm = v => (v - minY) / (maxY - minY || 1);
 
-      const backgroundColors = data.map(d => {
-        const gray = Math.round(255 * (1 - norm(d.v))); // black=low, white=high
-        return `rgb(${gray},${gray},${gray})`;
-      });
+      const backgroundColors = data.map(d => interpolateColor(norm(d.v)));
 
       const ctx = document.getElementById('heatmap').getContext('2d');
 
@@ -361,7 +381,7 @@
             x: {
               display: true,
               ticks: {
-                callback: v => xVals[v]?.toFixed(1) ?? '',
+                callback: v => xVals[v]?.toFixed(2) ?? '',
                 color: "#000",
                 maxRotation: 0,
                 minRotation: 0,
@@ -375,7 +395,7 @@
             y: {
               display: true,
               ticks: {
-                callback: v => yVals[v]?.toFixed(1) ?? '',
+                callback: v => yVals[v]?.toFixed(2) ?? '',
                 color: "#000",
                 maxRotation: 0,
                 minRotation: 0,
