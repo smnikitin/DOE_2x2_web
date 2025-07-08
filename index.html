@@ -1,356 +1,379 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>DOE Visualizer</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: white;
-      color: black;
-    }
-    .container-top {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
-    }
-    .input-table {
-      flex: 1;
-    }
-    .plot-container {
-      width: 350px;
-      background-color: white;
-    }
-    .equation-box {
-      margin-top: 20px;
-      font-weight: bold;
-      padding: 10px;
-      border: 1px solid #000;
-      white-space: pre-wrap;
-    }
-    .plots-row {
-      display: flex;
-      gap: 20px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-    .plot-small {
-      width: 300px;
-    }
-    h3 {
-      margin-bottom: 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>DOE Visualizer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: white;
+    color: black;
+  }
+  .container-top {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .input-table {
+    flex: 1;
+  }
+  table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 5px 10px;
+    text-align: center;
+  }
+  .plot-container {
+    width: 280px;
+    height: 280px;
+    background-color: white;
+  }
+  #paretoChart {
+    transform: rotate(90deg);
+  }
+  .equation-box {
+    margin-top: 20px;
+    font-weight: bold;
+    padding: 10px;
+    border: 1px solid black;
+    white-space: pre-wrap;
+  }
+  .plots-row {
+    margin-top: 30px;
+    display: flex;
+    gap: 20px;
+  }
+  .plot-small {
+    width: 300px;
+    height: 220px;
+  }
+  h3 {
+    margin-top: 40px;
+    margin-bottom: 10px;
+  }
+</style>
 </head>
 <body>
-  <h2>Design of Experiments - Input</h2>
-  <div class="container-top">
-    <div class="input-table">
-      <table>
-        <thead>
-          <tr><th>X1</th><th>X2</th><th>Y</th></tr>
-        </thead>
-        <tbody id="input-rows"></tbody>
-      </table>
-      <button onclick="calculate()">Calculate</button>
-    </div>
-    <div class="plot-container">
-      <canvas id="paretoChart"></canvas>
-    </div>
-    <div class="plot-container" style="width:350px; height:350px;">
-      <canvas id="contourPlot" style="width: 350px; height: 350px;"></canvas>
-    </div>
+
+<h2>Design of Experiments - Input</h2>
+<div class="container-top">
+  <div class="input-table">
+    <table>
+      <thead><tr><th>X1</th><th>X2</th><th>Y</th></tr></thead>
+      <tbody id="input-rows"></tbody>
+    </table>
+    <br />
+    <button onclick="calculate()">Calculate</button>
   </div>
 
-  <div class="equation-box" id="equation-result"></div>
-
-  <h3>Effect Plots</h3>
-  <div class="plots-row">
-    <div class="plot-small"><canvas id="mainEffectPlotX1"></canvas></div>
-    <div class="plot-small"><canvas id="mainEffectPlotX2"></canvas></div>
-    <div class="plot-small"><canvas id="interactionPlot"></canvas></div>
-    <div class="plot-small"><canvas id="interactionPlot2"></canvas></div>
+  <div class="plot-container">
+    <canvas id="paretoChart" width="280" height="280"></canvas>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
-  <script>
-    const X1_values = [-1, 1];
-    const X2_values = [-1, 1];
-    const defaultY = [1, 2, 3, 8];
+  <div class="plot-container">
+    <canvas id="contourPlot" width="280" height="280"></canvas>
+  </div>
+</div>
 
-    let paretoChart, contourChart;
-    let mainEffectPlotX1, mainEffectPlotX2;
-    let interactionPlot1, interactionPlot2;
+<div class="equation-box" id="equation-result"></div>
 
-    window.onload = () => {
-      const tbody = document.getElementById('input-rows');
-      for (let i = 0; i < 4; i++) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${X1_values[i % 2]}</td>
-          <td>${X2_values[Math.floor(i / 2)]}</td>
-          <td><input type="number" value="${defaultY[i]}" id="Y${i}" style="width:60px"></td>
-        `;
-        tbody.appendChild(row);
-      }
-      calculate();
-    };
+<h3>Effect Plots</h3>
+<div class="plots-row">
+  <div class="plot-small">
+    <canvas id="mainEffectPlotX1"></canvas>
+  </div>
+  <div class="plot-small">
+    <canvas id="mainEffectPlotX2"></canvas>
+  </div>
+  <div class="plot-small">
+    <canvas id="interactionPlot"></canvas>
+  </div>
+  <div class="plot-small">
+    <canvas id="interactionPlot2"></canvas>
+  </div>
+</div>
 
-    function calculate_Y(coeffs, x1, x2) {
-      return coeffs[0] + coeffs[1] * x1 + coeffs[2] * x2 + coeffs[3] * x1 * x2;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+<script>
+  const X1_values = [-1, 1];
+  const X2_values = [-1, 1];
+  const defaultY = [1, 2, 3, 8];
+
+  let paretoChart, contourChart;
+  let mainEffectPlotX1, mainEffectPlotX2;
+  let interactionPlot1, interactionPlot2;
+
+  window.onload = () => {
+    const tbody = document.getElementById('input-rows');
+    for (let i = 0; i < 4; i++) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${X1_values[i % 2]}</td>
+        <td>${X2_values[Math.floor(i / 2)]}</td>
+        <td><input type="number" value="${defaultY[i]}" id="Y${i}" style="width:60px" /></td>
+      `;
+      tbody.appendChild(row);
     }
+    calculate();
+  };
 
-    function getCoefficients(Y) {
-      const X = X1_values.map((x1, i) => {
-        return [1, x1, X2_values[Math.floor(i / 2)], x1 * X2_values[Math.floor(i / 2)]];
-      });
+  function calculate_Y(coeffs, x1, x2) {
+    return coeffs[0] + coeffs[1]*x1 + coeffs[2]*x2 + coeffs[3]*x1*x2;
+  }
 
-      // Since original design is full factorial, but X and Y arrays length 4:
-      // We must create X and Y length 4 with proper combinations
-      // So better use hardcoded design matrix:
-      const designX = [
-        [1, -1, -1, 1],
-        [1, 1, -1, -1],
-        [1, -1, 1, -1],
-        [1, 1, 1, 1]
-      ];
-      // Use mathjs to solve linear system
-      const XT = math.transpose(designX);
-      const XTX = math.multiply(XT, designX);
-      const XTY = math.multiply(XT, Y);
-      return math.lusolve(XTX, XTY).flat();
+  function getCoefficients(Y) {
+    // Design matrix: full factorial 2-level
+    const designX = [
+      [1, -1, -1, 1],
+      [1, 1, -1, -1],
+      [1, -1, 1, -1],
+      [1, 1, 1, 1]
+    ];
+    const XT = math.transpose(designX);
+    const XTX = math.multiply(XT, designX);
+    const XTY = math.multiply(XT, Y);
+    return math.lusolve(XTX, XTY).flat();
+  }
+
+  function calculate() {
+    const Y = [];
+    for(let i=0; i<4; i++) {
+      Y.push(parseFloat(document.getElementById('Y'+i).value));
     }
+    const coeffs = getCoefficients(Y);
 
-    function calculate() {
-      const Y = [];
-      for(let i=0; i<4; i++) {
-        Y.push(parseFloat(document.getElementById('Y'+i).value));
-      }
+    // Show equation
+    document.getElementById('equation-result').textContent =
+      `Estimated Equation:\nY = ${coeffs.map((c,i) =>
+        `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
+      ).join('')}`;
 
-      const coeffs = getCoefficients(Y);
+    plotPareto(coeffs);
+    plotContour(coeffs);
+    plotMainEffects(coeffs);
+    plotInteractions(coeffs);
+  }
 
-      // Show equation
-      document.getElementById('equation-result').textContent =
-        `Estimated Equation:\nY = ${coeffs.map((c,i) =>
-          `${i === 0 ? '' : ' + '}${c.toFixed(2)}${['', '·X1', '·X2', '·X1·X2'][i]}`
-        ).join('')}`;
-
-      plotPareto(coeffs);
-      plotContour(coeffs);
-      plotMainEffects(coeffs);
-      plotInteractions(coeffs);
-    }
-
-    function plotPareto(coeffs) {
-      if (paretoChart) paretoChart.destroy();
-      paretoChart = new Chart("paretoChart", {
-        type: "bar",
-        data: {
-          labels: ["X1", "X2", "X1·X2"],
-          datasets: [{
-            label: "Effect",
-            data: coeffs.slice(1).map(Math.abs),
-            backgroundColor: "gray"
-          }]
+  function plotPareto(coeffs) {
+    if (paretoChart) paretoChart.destroy();
+    paretoChart = new Chart("paretoChart", {
+      type: "bar",
+      data: {
+        labels: ["X1", "X2", "X1·X2"],
+        datasets: [{
+          label: "Effect",
+          data: coeffs.slice(1).map(Math.abs),
+          backgroundColor: "gray"
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Parental Chart', color: "#000" }
         },
-        options: {
-          responsive: true,
-          indexAxis: 'y',
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Pareto Chart', color: "#000" }
+        scales: {
+          x: { ticks: { color: "#000" }, grid: { color: "#ccc" } },
+          y: { ticks: { color: "#000" }, grid: { color: "#ccc" } }
+        }
+      }
+    });
+  }
+
+  function plotContour(coeffs) {
+    if (contourChart) contourChart.destroy();
+    const ctx = document.getElementById('contourPlot').getContext('2d');
+
+    // Create grid data
+    const steps = 30;
+    const xVals = [];
+    const yVals = [];
+    for(let i=0; i<=steps; i++) {
+      xVals.push(-1 + 2*i/steps);
+      yVals.push(-1 + 2*i/steps);
+    }
+
+    // Create a matrix of Z values
+    const Z = [];
+    for(let yi=0; yi<=steps; yi++) {
+      const row = [];
+      for(let xi=0; xi<=steps; xi++) {
+        const x = xVals[xi];
+        const y = yVals[yi];
+        row.push(calculate_Y(coeffs, x, y));
+      }
+      Z.push(row);
+    }
+
+    // Use Chart.js heatmap plugin alternative - simulate using scatter with colored points
+    // But to keep it simple, just draw as bubble plot colored by Z value
+
+    const maxZ = Math.max(...Z.flat());
+    const minZ = Math.min(...Z.flat());
+
+    function colorForValue(val) {
+      const ratio = (val - minZ) / (maxZ - minZ);
+      const r = Math.floor(255 * ratio);
+      const b = 255 - r;
+      return `rgb(${r},0,${b})`;
+    }
+
+    const points = [];
+    for(let yi=0; yi<=steps; yi++) {
+      for(let xi=0; xi<=steps; xi++) {
+        points.push({
+          x: xVals[xi],
+          y: yVals[yi],
+          backgroundColor: colorForValue(Z[yi][xi]),
+          radius: 4
+        });
+      }
+    }
+
+    contourChart = new Chart(ctx, {
+      type: 'bubble',
+      data: {
+        datasets: [{
+          label: 'Contour Plot',
+          data: points,
+          showLine: false,
+          pointStyle: 'circle'
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          x: {
+            min: -1,
+            max: 1,
+            title: { display: true, text: 'X1' },
+            ticks: { color: '#000' },
+            grid: { color: '#ccc' }
           },
-          scales: {
-            x: { ticks: { color: "#000" }, grid: { color: "#aaa" } },
-            y: { ticks: { color: "#000" }, grid: { color: "#aaa" } }
+          y: {
+            min: -1,
+            max: 1,
+            title: { display: true, text: 'X2' },
+            ticks: { color: '#000' },
+            grid: { color: '#ccc' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Contour Plot', color: '#000' }
+        },
+        elements: {
+          point: {
+            hoverRadius: 6,
+            radius: 4
           }
         }
-      });
-    }
-
-    function plotContour(coeffs) {
-      if (contourChart) {
-        contourChart.destroy();
       }
-      const ctx = document.getElementById('contourPlot').getContext('2d');
+    });
+  }
 
-      // Grid resolution
-      const steps = 30;
-      const xVals = [];
-      const yVals = [];
-      for(let i=0; i<=steps; i++) {
-        xVals.push(-1 + 2*i/steps);
-        yVals.push(-1 + 2*i/steps);
-      }
-
-      const data = [];
-      for(let yi=0; yi<=steps; yi++) {
-        for(let xi=0; xi<=steps; xi++) {
-          const x = xVals[xi];
-          const y = yVals[yi];
-          const z = calculate_Y(coeffs, x, y);
-          data.push({x, y, v: z});
-        }
-      }
-
-      // Prepare data for Chart.js contour plugin alternative: Use scatter with color by value
-      // But Chart.js doesn't have native contour so we simulate heatmap with bubble sizes or colors
-      // So here we create a bubble chart with circle radius 0 and colored by 'v'
-      // Use plugin for color mapping
-
-      const maxV = Math.max(...data.map(d=>d.v));
-      const minV = Math.min(...data.map(d=>d.v));
-
-      const colorScale = (val) => {
-        // Map val between minV and maxV to color scale (blue to red)
-        const ratio = (val - minV) / (maxV - minV);
-        const r = Math.floor(255 * ratio);
-        const b = 255 - r;
-        return `rgb(${r},0,${b})`;
-      };
-
-      const dataset = {
-        label: 'Contour',
-        data: data.map(d => ({x: d.x, y: d.y, backgroundColor: colorScale(d.v), radius: 5})),
-        showLine: false,
-        pointStyle: 'circle',
-        type: 'bubble',
-      };
-
-      contourChart = new Chart(ctx, {
-        type: 'bubble',
-        data: {
-          datasets: [dataset]
-        },
-        options: {
-          responsive: false,
-          scales: {
-            x: {
-              min: -1,
-              max: 1,
-              title: {display:true, text:'X1'},
-              ticks: {color:'#000'}
-            },
-            y: {
-              min: -1,
-              max: 1,
-              title: {display:true, text:'X2'},
-              ticks: {color:'#000'}
-            }
+  function createLinePlot(canvasId, xVals, yArrays, labels, xLabel, yLabel, colors, options = {}) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const datasets = yArrays.map((yarr, i) => ({
+      label: labels[i],
+      data: xVals.map((x, idx) => ({x: x, y: yarr[idx]})),
+      borderColor: colors[i],
+      backgroundColor: colors[i],
+      fill: false,
+      showLine: true,
+      pointRadius: 5,
+      tension: 0
+    }));
+    return new Chart(ctx, {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: xLabel },
+            ticks: { values: xVals, color: '#000' },
+            grid: { color: '#ccc' }
           },
-          plugins: {
-            legend: {display:false},
-            title: {display:true, text:'Contour Plot (simulated)', color: '#000'}
-          },
-          elements: {
-            point: {
-              radius: 5,
-              hoverRadius: 7
-            }
+          y: {
+            title: { display: true, text: yLabel },
+            min: options.yMin !== undefined ? options.yMin : undefined,
+            max: options.yMax !== undefined ? options.yMax : undefined,
+            ticks: { color: '#000' },
+            grid: { color: '#ccc' }
           }
-        }
-      });
-    }
+        },
+        plugins: {
+          legend: { display: labels.length > 1 },
+          title: { display: false }
+        },
+        responsive: false
+      }
+    });
+  }
 
-    function createLinePlot(canvasId, xVals, yArrays, labels, xLabel, yLabel, colors, options = {}) {
-      const ctx = document.getElementById(canvasId).getContext("2d");
-      const datasets = yArrays.map((yarr, i) => ({
-        label: labels[i],
-        data: xVals.map((x, idx) => ({x: x, y: yarr[idx]})),
-        borderColor: colors[i],
-        backgroundColor: colors[i],
-        fill: false,
-        showLine: true,
-        pointRadius: 5,
-        tension: 0
-      }));
-      return new Chart(ctx, {
-        type: 'scatter',
-        data: { datasets },
-        options: {
-          scales: {
-            x: {
-              type: 'linear',
-              title: { display: true, text: xLabel },
-              ticks: { values: xVals, color: '#000' },
-              grid: { color: '#ccc' }
-            },
-            y: {
-              title: { display: true, text: yLabel },
-              min: options.yMin !== undefined ? options.yMin : undefined,
-              max: options.yMax !== undefined ? options.yMax : undefined,
-              ticks: { color: '#000' },
-              grid: { color: '#ccc' }
-            }
-          },
-          plugins: { legend: { display: labels.length > 1 }, title: { display: false } },
-          responsive: false
-        }
-      });
-    }
+  function plotMainEffects(coeffs) {
+    const Y_X1_main = X1_values.map(x1 => calculate_Y(coeffs, x1, 0));
+    const Y_X2_main = X2_values.map(x2 => calculate_Y(coeffs, 0, x2));
 
-    function plotMainEffects(coeffs) {
-      // Calculate Y for main effects at X2=0 and X1=0
-      const Y_X1_main = X1_values.map(x1 => calculate_Y(coeffs, x1, 0));
-      const Y_X2_main = X2_values.map(x2 => calculate_Y(coeffs, 0, x2));
+    // Combined Y axis range:
+    const allY = Y_X1_main.concat(Y_X2_main);
+    const yMin = Math.min(...allY);
+    const yMax = Math.max(...allY);
 
-      // Calculate combined Y axis range
-      const allY = Y_X1_main.concat(Y_X2_main);
-      const yMin = Math.min(...allY);
-      const yMax = Math.max(...allY);
+    if(mainEffectPlotX1) mainEffectPlotX1.destroy();
+    mainEffectPlotX1 = createLinePlot(
+      'mainEffectPlotX1',
+      X1_values,
+      [Y_X1_main],
+      ['Y (X2=0)'],
+      'X1', 'Y',
+      ['black'],
+      { yMin, yMax }
+    );
 
-      if (mainEffectPlotX1) mainEffectPlotX1.destroy();
-      mainEffectPlotX1 = createLinePlot(
-        'mainEffectPlotX1',
-        X1_values,
-        [Y_X1_main],
-        ['Y (X2=0)'],
-        'X1', 'Y',
-        ['black'],
-        { yMin, yMax }
-      );
+    if(mainEffectPlotX2) mainEffectPlotX2.destroy();
+    mainEffectPlotX2 = createLinePlot(
+      'mainEffectPlotX2',
+      X2_values,
+      [Y_X2_main],
+      ['Y (X1=0)'],
+      'X2', 'Y',
+      ['black'],
+      { yMin, yMax }
+    );
+  }
 
-      if (mainEffectPlotX2) mainEffectPlotX2.destroy();
-      mainEffectPlotX2 = createLinePlot(
-        'mainEffectPlotX2',
-        X2_values,
-        [Y_X2_main],
-        ['Y (X1=0)'],
-        'X2', 'Y',
-        ['black'],
-        { yMin, yMax }
-      );
-    }
+  function plotInteractions(coeffs) {
+    const Y_X1_X2minus1 = X1_values.map(x1 => calculate_Y(coeffs, x1, -1));
+    const Y_X1_X2plus1 = X1_values.map(x1 => calculate_Y(coeffs, x1, 1));
+    const Y_X2_X1minus1 = X2_values.map(x2 => calculate_Y(coeffs, -1, x2));
+    const Y_X2_X1plus1 = X2_values.map(x2 => calculate_Y(coeffs, 1, x2));
 
-    function plotInteractions(coeffs) {
-      // Calculate Y values for interaction plots
-      const Y_X1_X2minus1 = X1_values.map(x1 => calculate_Y(coeffs, x1, -1));
-      const Y_X1_X2plus1 = X1_values.map(x1 => calculate_Y(coeffs, x1, 1));
-      const Y_X2_X1minus1 = X2_values.map(x2 => calculate_Y(coeffs, -1, x2));
-      const Y_X2_X1plus1 = X2_values.map(x2 => calculate_Y(coeffs, 1, x2));
+    if(interactionPlot1) interactionPlot1.destroy();
+    interactionPlot1 = createLinePlot(
+      'interactionPlot',
+      X1_values,
+      [Y_X1_X2minus1, Y_X1_X2plus1],
+      ['X2 = -1', 'X2 = +1'],
+      'X1', 'Y',
+      ['black', 'gray']
+    );
 
-      if (interactionPlot1) interactionPlot1.destroy();
-      interactionPlot1 = createLinePlot(
-        'interactionPlot',
-        X1_values,
-        [Y_X1_X2minus1, Y_X1_X2plus1],
-        ['X2 = -1', 'X2 = +1'],
-        'X1', 'Y',
-        ['black', 'gray']
-      );
+    if(interactionPlot2) interactionPlot2.destroy();
+    interactionPlot2 = createLinePlot(
+      'interactionPlot2',
+      X2_values,
+      [Y_X2_X1minus1, Y_X2_X1plus1],
+      ['X1 = -1', 'X1 = +1'],
+      'X2', 'Y',
+      ['black', 'gray']
+    );
+  }
+</script>
 
-      if (interactionPlot2) interactionPlot2.destroy();
-      interactionPlot2 = createLinePlot(
-        'interactionPlot2',
-        X2_values,
-        [Y_X2_X1minus1, Y_X2_X1plus1],
-        ['X1 = -1', 'X1 = +1'],
-        'X2', 'Y',
-        ['black', 'gray']
-      );
-    }
-  </script>
 </body>
 </html>
